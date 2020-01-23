@@ -5,9 +5,9 @@ import pymc3 as pm
 
 
 class FourierSeasonality(TimeSeriesModel):
-    def __init__(self, n=10, periodicity=365.25):
+    def __init__(self, n=10, period=365.25):
         self.n = n
-        self.periodicity = periodicity
+        self.period = period
         super().__init__()
 
     @staticmethod
@@ -17,7 +17,7 @@ class FourierSeasonality(TimeSeriesModel):
 
     def definition(self, model, X, scale_factor):
         t = X['t'].values
-        self.p_ = self.periodicity / scale_factor
+        self.p_ = self.period / scale_factor
 
         with model:
             beta = pm.Normal('beta', 0, 10, shape=self.n * 2)
