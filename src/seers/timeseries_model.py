@@ -6,18 +6,16 @@ import matplotlib.pyplot as plt
 
 
 class TimeSeriesModel:
-    def __init__(self):
-        self._X_scaler = MinMaxScaler()
-        self._y_scaler = MinMaxScaler()
-
     def fit(self, X, y, **sample_kwargs):
+        self._X_scaler_ = MinMaxScaler()
+        self._y_scaler_ = MinMaxScaler()
+
         X_scaled = self._X_scaler.fit_transform(X)
         y_scaled = self._y_scaler.fit_transform(y)
         model = pm.Model()
 
         del X
-        # mu = self.definition(model, X_scaled, self._X_scaler.max_['t'] - self._X_scaler.min_['t'])
-        mu = self.definition(model, X_scaled, 1)
+        mu = self.definition(model, X_scaled, self._X_scaler.max_['t'] - self._X_scaler.min_['t'])
         with model:
             sigma = pm.HalfCauchy('sigma', 0.5)
             pm.Normal(
@@ -32,8 +30,8 @@ class TimeSeriesModel:
         fig = plt.figure(figsize=(25, 1))
 
         n_points = 1000
-        # t = np.linspace(self._X_scaler.min_['t'], self._X_scaler.max_['t'], n_points)
-        t = np.linspace(0, 1, n_points)
+        t = np.linspace(self._X_scaler.min_['t'], self._X_scaler.max_['t'], n_points)
+
         scaled_t = np.linspace(0, 1, n_points)
         total = self.plot(self.trace_, scaled_t, self._y_scaler)
         ax = add_subplot()

@@ -9,11 +9,22 @@ multiple time series are expected to share parts of their parameters.
  
  
 ## Usage
+Seers is designed as a language for building time series models. It offers a toolbox of various components which
+can be arranged in a formula. We can compose these components in various ways to best fit our problem. 
 
+Seers strongly encourages using uncertainty estimates, and will by default use MCMC to get full posterior estimates.
+
+
+```python
+from seers import LinearTrend, FourierSeasonality
+
+model = LinearTrend() + FourierSeasonality(period=365) + FourierSeasonality(period=7)
+model.fit(data[['t']], data['value'])
+```
 
 ### Multiplicative seasonality
 ```python
-from seers import utils, LinearTrend, TimeSeriesModel, FourierSeasonality
+from seers import LinearTrend, FourierSeasonality
 import pandas as pd
 
 passengers = pd.read_csv('AirPassengers.csv').reset_index().assign(
@@ -21,7 +32,7 @@ passengers = pd.read_csv('AirPassengers.csv').reset_index().assign(
     value=lambda d: d['#Passengers']
 )
 
-model = LinearTrend(n_changepoints=10) * FourierSeasonality(n=5, periodicity=12/143)
+model = LinearTrend(n_changepoints=10) * FourierSeasonality(n=5, period=12/143)
 model.fit(passengers[['t']], passengers['value'], tune=2000)
 
 model.plot_components()
@@ -38,8 +49,11 @@ model.plot_components()
 ![png](images/airline_passengers.png)
 
 
+# Contributing
 
-```python
+PR's and suggestions are always welcome. Please open an issue on the issue list before submitting though in order to
+avoid doing unnecessary work. I try to adhere to the `scikit-learn` style as much as possible. This means:
 
-```
+- Fitted parameters have a trailing underscore
+- No parameter modification is done in `__init__` methods of model components
 
