@@ -1,56 +1,95 @@
-import operator
-from functools import reduce
 import pymc3 as pm
-from seers.utils import MinMaxScaler
+from seers.utils import MinMaxScaler, add_subplot
 import numpy as np
+
+import matplotlib.pyplot as plt
 
 
 class TimeSeriesModel:
-
     def __init__(self):
-        self._model = pm.Model()
-        self._components = []
         self._X_scaler = MinMaxScaler()
         self._y_scaler = MinMaxScaler()
 
-    def __add__(self, other):
-        # TODO return copy
-        self._components.append(other)
-        return self
-
-    def fit(self, X, y):
+    def fit(self, X, y, **sample_kwargs):
         X_scaled = self._X_scaler.fit_transform(X)
         y_scaled = self._y_scaler.fit_transform(y)
+        model = pm.Model()
 
         del X
-        with self._model:
+        # mu = self.definition(model, X_scaled, self._X_scaler.max_['t'] - self._X_scaler.min_['t'])
+        mu = self.definition(model, X_scaled, 1)
+        with model:
             sigma = pm.HalfCauchy('sigma', 0.5)
-
-            mu = reduce(operator.add, [c.definition(self._model, X_scaled) for c in self._components])
             pm.Normal(
                 'obs',
                 mu=mu,
                 sd=sigma,
                 observed=y_scaled
             )
-
-            self.trace_ = pm.sample(tune=100, draws=100)
+            self.trace_ = pm.sample(**sample_kwargs)
 
     def plot_components(self):
-        import matplotlib.pyplot as plt
+        fig = plt.figure(figsize=(25, 1))
 
-        fig, axes = plt.subplots(nrows=len(self._components) + 1, figsize=(25, 8 * len(self._components) + 1))
-
-        n_points = 100
-        t = np.linspace(self._X_scaler.min_['t'], self._X_scaler.max_['t'], n_points)
+        n_points = 1000
+        # t = np.linspace(self._X_scaler.min_['t'], self._X_scaler.max_['t'], n_points)
+        t = np.linspace(0, 1, n_points)
         scaled_t = np.linspace(0, 1, n_points)
-        sub_trace = self.trace_[0:100:5]
-        overall = np.zeros((n_points, len(sub_trace) * len(sub_trace.chains)))
-
-        for idx, component in enumerate(self._components, start=1):
-            trend = component.plot(axes[idx], sub_trace, scaled_t)
-            overall += trend
-
-        axes[0].set_title('Overall model')
-        axes[0].plot(t, overall)
+        total = self.plot(self.trace_, scaled_t, self._y_scaler)
+        ax = add_subplot()
+        ax.plot(t, self._y_scaler.inv_transform(total))
         fig.tight_layout()
+
+    def plot(self, trace, t, y_scaler):
+        raise NotImplemented
+
+    def definition(self, model, X_scaled, scale_factor):
+        raise NotImplemented
+
+    def __add__(self, other):
+        return AdditiveTimeSeries(self, other)
+
+    def __mul__(self, other):
+        return MultiplicativeTimeSeries(self, other)
+
+
+class AdditiveTimeSeries(TimeSeriesModel):
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+        super().__init__()
+
+    def definition(self, *args, **kwargs):
+        return self.left.definition(*args, **kwargs) + self.right.definition(*args, **kwargs)
+
+    def plot(self, *args, **kwargs):
+        l = self.left.plot(*args, **kwargs)
+        r = self.right.plot(*args, **kwargs)
+        return l + r
+
+    def __repr__(self):
+        return f"AdditiveTimeSeries( \n" \
+               f"    left={self.left} \n" \
+               f"    right={self.right} \n" \
+               f")"
+
+
+class MultiplicativeTimeSeries(TimeSeriesModel):
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+        super().__init__()
+
+    def definition(self, *args, **kwargs):
+        return self.left.definition(*args, **kwargs) * (1 + self.right.definition(*args, **kwargs))
+
+    def plot(self, trace, t, y_scaler):
+        l = self.left.plot(trace, t, y_scaler)
+        r = self.right.plot(trace, t, y_scaler)
+        return l + (l * r)
+
+    def __repr__(self):
+        return f"MultiplicativeTimeSeries( \n" \
+               f"    left={self.left} \n" \
+               f"    right={self.right} \n" \
+               f")"

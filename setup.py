@@ -2,7 +2,7 @@ import os
 
 from setuptools import setup, find_packages
 
-base_packages = ["numpy>=1.15.4", "scipy>=1.2.0", "pandas>=0.23.4", "pymc3"]
+base_packages = ["numpy>=1.15.4", "pandas>=0.23.4", "pymc3>=3.8"]
 
 
 def read(fname):
