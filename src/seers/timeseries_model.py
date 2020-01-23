@@ -26,8 +26,9 @@ class TimeSeriesModel:
             )
             self.trace_ = pm.sample(**sample_kwargs)
 
-    def plot_components(self):
-        fig = plt.figure(figsize=(25, 1))
+    def plot_components(self, fig=None):
+        if fig is None:
+            fig = plt.figure(figsize=(18, 1))
 
         n_points = 1000
         t = np.linspace(self._X_scaler.min_['t'], self._X_scaler.max_['t'], n_points)
@@ -37,6 +38,7 @@ class TimeSeriesModel:
         ax = add_subplot()
         ax.plot(t, self._y_scaler.inv_transform(total))
         fig.tight_layout()
+        return fig
 
     def plot(self, trace, t, y_scaler):
         raise NotImplemented
