@@ -15,15 +15,12 @@ class TimeSeriesModel:
         model = pm.Model()
 
         del X
-        mu = self.definition(model, X_scaled, self._X_scaler_.max_['t'] - self._X_scaler_.min_['t'])
+        mu = self.definition(
+            model, X_scaled, self._X_scaler_.max_["t"] - self._X_scaler_.min_["t"]
+        )
         with model:
-            sigma = pm.HalfCauchy('sigma', 0.5)
-            pm.Normal(
-                'obs',
-                mu=mu,
-                sd=sigma,
-                observed=y_scaled
-            )
+            sigma = pm.HalfCauchy("sigma", 0.5)
+            pm.Normal("obs", mu=mu, sd=sigma, observed=y_scaled)
             self.trace_ = pm.sample(**sample_kwargs)
 
     def plot_components(self, fig=None):
@@ -31,7 +28,7 @@ class TimeSeriesModel:
             fig = plt.figure(figsize=(18, 1))
 
         n_points = 1000
-        t = np.linspace(self._X_scaler_.min_['t'], self._X_scaler_.max_['t'], n_points)
+        t = np.linspace(self._X_scaler_.min_["t"], self._X_scaler_.max_["t"], n_points)
 
         scaled_t = np.linspace(0, 1, n_points)
         total = self.plot(self.trace_, scaled_t, self._y_scaler_)
@@ -59,7 +56,9 @@ class AdditiveTimeSeries(TimeSeriesModel):
         super().__init__()
 
     def definition(self, *args, **kwargs):
-        return self.left.definition(*args, **kwargs) + self.right.definition(*args, **kwargs)
+        return self.left.definition(*args, **kwargs) + self.right.definition(
+            *args, **kwargs
+        )
 
     def plot(self, *args, **kwargs):
         l = self.left.plot(*args, **kwargs)
@@ -67,10 +66,12 @@ class AdditiveTimeSeries(TimeSeriesModel):
         return l + r
 
     def __repr__(self):
-        return f"AdditiveTimeSeries( \n" \
-               f"    left={self.left} \n" \
-               f"    right={self.right} \n" \
-               f")"
+        return (
+            f"AdditiveTimeSeries( \n"
+            f"    left={self.left} \n"
+            f"    right={self.right} \n"
+            f")"
+        )
 
 
 class MultiplicativeTimeSeries(TimeSeriesModel):
@@ -80,7 +81,9 @@ class MultiplicativeTimeSeries(TimeSeriesModel):
         super().__init__()
 
     def definition(self, *args, **kwargs):
-        return self.left.definition(*args, **kwargs) * (1 + self.right.definition(*args, **kwargs))
+        return self.left.definition(*args, **kwargs) * (
+            1 + self.right.definition(*args, **kwargs)
+        )
 
     def plot(self, trace, t, y_scaler):
         l = self.left.plot(trace, t, y_scaler)
@@ -88,7 +91,9 @@ class MultiplicativeTimeSeries(TimeSeriesModel):
         return l + (l * r)
 
     def __repr__(self):
-        return f"MultiplicativeTimeSeries( \n" \
-               f"    left={self.left} \n" \
-               f"    right={self.right} \n" \
-               f")"
+        return (
+            f"MultiplicativeTimeSeries( \n"
+            f"    left={self.left} \n"
+            f"    right={self.right} \n"
+            f")"
+        )

@@ -6,7 +6,7 @@ def dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
-class MinMaxScaler():
+class MinMaxScaler:
     def fit(self, df):
         self.max_ = df.max()
         self.min_ = df.min()
@@ -36,7 +36,7 @@ def generate_data():
 
     k, m = 0, 0
 
-    growth = (k + A @ delta)
+    growth = k + A @ delta
     gamma = -s * delta
     offset = m + A @ gamma
     trend = growth * t + offset

@@ -16,17 +16,17 @@ class FourierSeasonality(TimeSeriesModel):
         return np.concatenate((np.cos(x), np.sin(x)), axis=1)
 
     def definition(self, model, X, scale_factor):
-        t = X['t'].values
+        t = X["t"].values
         self.p_ = self.period / scale_factor
 
         with model:
-            beta = pm.Normal('beta', 0, 10, shape=self.n * 2)
+            beta = pm.Normal("beta", 0, 10, shape=self.n * 2)
             seasonality = dot(self._X_t(t, self.p_, self.n), beta)
 
         return seasonality
 
     def _predict(self, trace, t):
-        return self._X_t(t, self.p_, self.n) @ trace['beta'].T
+        return self._X_t(t, self.p_, self.n) @ trace["beta"].T
 
     def plot(self, trace, t, y_scaler):
         scaled_s = self._predict(trace, t)
@@ -34,7 +34,7 @@ class FourierSeasonality(TimeSeriesModel):
 
         ax = add_subplot()
         ax.set_title(str(self))
-        ax.plot(t, s.mean(axis=1), c='lightblue')
+        ax.plot(t, s.mean(axis=1), c="lightblue")
         return scaled_s.mean(axis=1)
 
     def __repr__(self):
