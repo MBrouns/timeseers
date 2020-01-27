@@ -25,19 +25,23 @@ class LinearTrend(TimeSeriesModel):
             g = (k + dot(A, delta)) * t + (m + dot(A, gamma))
         return g
 
-    def plot(self, trace, t, y_scaler):
-        ax = add_subplot()
-
+    def _predict(self, trace, t):
         A = (t[:, None] > self.s) * 1
 
         k, m = trace['k'], trace['m']
         growth = (k + A @ trace['delta'].T)
         gamma = -self.s[:, None] * trace['delta'].T
         offset = m + A @ gamma
-        scaled_trend = growth * t[:, None] + offset
+        return growth * t[:, None] + offset
+
+    def plot(self, trace, t, y_scaler):
+        ax = add_subplot()
+
+        scaled_trend = self.predict(trace, t)
         trend = y_scaler.inv_transform(scaled_trend)
+
         ax.set_title(str(self))
-        ax.plot(t, scaled_trend.mean(axis=1), c='lightblue')
+        ax.plot(t, trend.mean(axis=1), c='lightblue')
         for changepoint in self.s:
             ax.axvline(changepoint, linestyle='--', alpha=0.2, c='k')
 

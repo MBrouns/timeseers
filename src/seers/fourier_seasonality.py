@@ -25,8 +25,11 @@ class FourierSeasonality(TimeSeriesModel):
 
         return seasonality
 
+    def _predict(self, trace, t):
+        return self._X_t(t, self.p_, self.n) @ trace['beta'].T
+
     def plot(self, trace, t, y_scaler):
-        scaled_s = self._X_t(t, self.p_, self.n) @ trace['beta'].T
+        scaled_s = self._predict(trace, t)
         s = y_scaler.inv_transform(scaled_s)
 
         ax = add_subplot()

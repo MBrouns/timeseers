@@ -2,7 +2,7 @@
 
 > seers - (Noun) plural form of seer - A person who foretells future events by or as if by supernatural means
 
-Seers is an hierarchical Bayesian Structural Time Series model based on [Facebooks Prophet](https://facebook.github.io/prophet/), written in PyMC3.
+Seers is an hierarchical Bayesian Time Series model based on [Facebooks Prophet](https://facebook.github.io/prophet/), written in PyMC3.
 
 The goal of the Seers project is to provide an easily extensible alternative to Prophet for timeseries modelling when
 multiple time series are expected to share parts of their parameters.
