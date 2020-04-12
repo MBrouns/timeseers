@@ -1,5 +1,5 @@
 import pymc3 as pm
-from seers.utils import MinMaxScaler, add_subplot
+from timeseers.utils import MinMaxScaler, add_subplot
 import numpy as np
 
 import matplotlib.pyplot as plt

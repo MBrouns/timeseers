@@ -10,7 +10,7 @@ def read(fname):
 
 
 setup(
-    name='seers',
+    name='timeseers',
     packages=find_packages(where='src'),
     package_dir={"": "src"},
     install_requires=base_packages,

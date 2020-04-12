@@ -1,22 +1,22 @@
-# Seers
+# TimeSeers
 
 > seers - (Noun) plural form of seer - A person who foretells future events by or as if by supernatural means
 
-Seers is an hierarchical Bayesian Time Series model based on [Facebooks Prophet](https://facebook.github.io/prophet/), written in PyMC3.
+TimeSeers is an hierarchical Bayesian Time Series model based on [Facebooks Prophet](https://facebook.github.io/prophet/), written in PyMC3.
 
-The goal of the Seers project is to provide an easily extensible alternative to Prophet for timeseries modelling when
+The goal of the TimeSeers project is to provide an easily extensible alternative to Prophet for timeseries modelling when
 multiple time series are expected to share parts of their parameters.
  
  
 ## Usage
-Seers is designed as a language for building time series models. It offers a toolbox of various components which
+TimeSeers is designed as a language for building time series models. It offers a toolbox of various components which
 can be arranged in a formula. We can compose these components in various ways to best fit our problem. 
 
-Seers strongly encourages using uncertainty estimates, and will by default use MCMC to get full posterior estimates.
+TimeSeers strongly encourages using uncertainty estimates, and will by default use MCMC to get full posterior estimates.
 
 
 ```python
-from seers import LinearTrend, FourierSeasonality
+from timeseers import LinearTrend, FourierSeasonality
 
 model = LinearTrend() + FourierSeasonality(period=365) + FourierSeasonality(period=7)
 model.fit(data[['t']], data['value'])
@@ -24,7 +24,7 @@ model.fit(data[['t']], data['value'])
 
 ### Multiplicative seasonality
 ```python
-from seers import LinearTrend, FourierSeasonality
+from timeseers import LinearTrend, FourierSeasonality
 import pandas as pd
 
 passengers = pd.read_csv('AirPassengers.csv').reset_index().assign(

@@ -1,6 +1,6 @@
 import numpy as np
-from seers.timeseries_model import TimeSeriesModel
-from seers.utils import dot, add_subplot
+from timeseers.timeseries_model import TimeSeriesModel
+from timeseers.utils import dot, add_subplot
 import pymc3 as pm
 
 
