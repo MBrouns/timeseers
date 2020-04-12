@@ -2,9 +2,10 @@ import pandas as pd
 import pymc3 as pm
 from timeseers.utils import MinMaxScaler, add_subplot
 import numpy as np
+from abc import ABC, abstractmethod
 
 
-class TimeSeriesModel:
+class TimeSeriesModel(ABC):
     def fit(self, X, y, **sample_kwargs):
         self._X_scaler_ = MinMaxScaler()
         self._y_scaler_ = MinMaxScaler()
@@ -42,15 +43,13 @@ class TimeSeriesModel:
             ax.scatter(X_true["t"], y_true, c="k")
         fig.tight_layout()
 
+    @abstractmethod
     def plot(self, trace, t, y_scaler):
-        raise NotImplementedError(
-            "subclasses of TimeSeriesModel should implement definition"
-        )
+        pass
 
+    @abstractmethod
     def definition(self, model, X_scaled, scale_factor):
-        raise NotImplementedError(
-            "subclasses of TimeSeriesModel should implement definition"
-        )
+        pass
 
     def __add__(self, other):
         return AdditiveTimeSeries(self, other)
