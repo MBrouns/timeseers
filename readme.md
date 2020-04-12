@@ -17,8 +17,9 @@ TimeSeers strongly encourages using uncertainty estimates, and will by default u
 
 ```python
 from timeseers import LinearTrend, FourierSeasonality
+import pandas as pd
 
-model = LinearTrend() + FourierSeasonality(period=365) + FourierSeasonality(period=7)
+model = LinearTrend() + FourierSeasonality(period=pd.TimeDelta(days=365)) + FourierSeasonality(period=pd.TimeDelta(days=365))
 model.fit(data[['t']], data['value'])
 ```
 
@@ -28,14 +29,14 @@ from timeseers import LinearTrend, FourierSeasonality
 import pandas as pd
 
 passengers = pd.read_csv('AirPassengers.csv').reset_index().assign(
-    t=lambda d: d['index'],
+    t=lambda d: pd.to_datetime(d['Month']),
     value=lambda d: d['#Passengers']
 )
 
-model = LinearTrend(n_changepoints=10) * FourierSeasonality(n=5, period=12/143)
+model = LinearTrend(n_changepoints=10) * FourierSeasonality(n=5, period=pd.TimeDelta(days=365))
 model.fit(passengers[['t']], passengers['value'], tune=2000)
 
-model.plot_components()
+model.plot_components(X_true=passengers, y_true=passengers['value']);
 ```
 
     Auto-assigning NUTS sampler...

@@ -42,6 +42,7 @@ class TimeSeriesModel(ABC):
         if X_true is not None and y_true is not None:
             ax.scatter(X_true["t"], y_true, c="k")
         fig.tight_layout()
+        return fig
 
     @abstractmethod
     def plot(self, trace, t, y_scaler):
