@@ -1,3 +1,5 @@
+<img src="images/timeseers.png" width="35%" height="35%" align="right" />
+
 # TimeSeers
 
 > seers - (Noun) plural form of seer - A person who foretells future events by or as if by supernatural means
