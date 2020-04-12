@@ -3,6 +3,8 @@ import os
 from setuptools import setup, find_packages
 
 base_packages = ["numpy>=1.15.4", "pandas>=0.23.4", "pymc3>=3.8"]
+plot_packages = ["matplotlib>=3.2.1"]
+dev_packages = ["pytest==5.3.4", "flake8>=3.7.9"]
 
 
 def read(fname):
@@ -14,6 +16,10 @@ setup(
     packages=find_packages(where='src'),
     package_dir={"": "src"},
     install_requires=base_packages,
+    extras_require={
+      "dev": dev_packages,
+      "plot": plot_packages
+    },
     description='An hierarchical version of Facebooks prophet in PyMC3',
     author='Matthijs Brouns',
     long_description=read('readme.md'),

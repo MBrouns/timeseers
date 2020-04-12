@@ -1,11 +1,12 @@
 import numpy as np
+import pandas as pd
+import pymc3 as pm
 from timeseers.timeseries_model import TimeSeriesModel
 from timeseers.utils import dot, add_subplot
-import pymc3 as pm
 
 
 class FourierSeasonality(TimeSeriesModel):
-    def __init__(self, n=10, period=365.25):
+    def __init__(self, n: int = 10, period: pd.Timedelta = pd.Timedelta(days=365)):
         self.n = n
         self.period = period
         super().__init__()
@@ -28,13 +29,14 @@ class FourierSeasonality(TimeSeriesModel):
     def _predict(self, trace, t):
         return self._X_t(t, self.p_, self.n) @ trace["beta"].T
 
-    def plot(self, trace, t, y_scaler):
-        scaled_s = self._predict(trace, t)
+    def plot(self, trace, scaled_t, y_scaler):
+        scaled_s = self._predict(trace, scaled_t)
         s = y_scaler.inv_transform(scaled_s)
 
         ax = add_subplot()
         ax.set_title(str(self))
-        ax.plot(t, s.mean(axis=1), c="lightblue")
+        ax.set_xticks([])
+        ax.plot(scaled_t, s.mean(axis=1), c="lightblue")
         return scaled_s.mean(axis=1)
 
     def __repr__(self):

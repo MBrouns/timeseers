@@ -38,14 +38,15 @@ class LinearTrend(TimeSeriesModel):
         offset = m + A @ gamma
         return growth * t[:, None] + offset
 
-    def plot(self, trace, t, y_scaler):
+    def plot(self, trace, scaled_t, y_scaler):
         ax = add_subplot()
 
-        scaled_trend = self.predict(trace, t)
+        scaled_trend = self._predict(trace, scaled_t)
         trend = y_scaler.inv_transform(scaled_trend)
 
         ax.set_title(str(self))
-        ax.plot(t, trend.mean(axis=1), c="lightblue")
+        ax.set_xticks([])
+        ax.plot(scaled_t, trend.mean(axis=1), c="lightblue")
         for changepoint in self.s:
             ax.axvline(changepoint, linestyle="--", alpha=0.2, c="k")
 
