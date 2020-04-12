@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def dot(a, b):
@@ -23,14 +24,27 @@ class MinMaxScaler:
         return df * (self.max_ - self.min_) + self.min_
 
 
-def generate_data():
-    np.random.seed(43)
+def add_subplot(height=5):
+    fig = plt.gcf()
+    n = len(fig.axes)
+    for i in range(n):
+        fig.axes[i].change_geometry(n + 1, 1, i + 1)
+    w, h = fig.get_size_inches()
+    fig.set_size_inches(w, h + height)
+    return fig.add_subplot(len(fig.axes) + 1, 1, len(fig.axes) + 1)
 
-    n_changepoints = 15
-    delta = np.random.laplace(size=n_changepoints) * 0.01
 
-    t = np.arange(1000)
-    s = np.sort(np.random.choice(t, n_changepoints, replace=False))
+def trend_data(n_changepoints, location="spaced", noise=0.001):
+    delta = np.random.laplace(size=n_changepoints)
+
+    t = np.linspace(0, 1, 1000)
+
+    if location == "random":
+        s = np.sort(np.random.choice(t, n_changepoints, replace=False))
+    elif location == "spaced":
+        s = np.linspace(0, np.max(t), n_changepoints + 2)[1:-1]
+    else:
+        raise ValueError('invalid `location`, should be "random" or "spaced"')
 
     A = (t[:, None] > s) * 1
 
@@ -39,26 +53,27 @@ def generate_data():
     growth = k + A @ delta
     gamma = -s * delta
     offset = m + A @ gamma
-    trend = growth * t + offset
+    trend = growth * t + offset + np.random.randn(len(t)) * noise
 
+    return (
+        pd.DataFrame({"t": pd.date_range("2018-1-1", periods=len(t)), "value": trend}),
+        delta,
+    )
+
+
+def seasonal_data(n_components):
     def X(t, p=365.25, n=10):
         x = 2 * np.pi * (np.arange(n) + 1) * t[:, None] / p
         return np.concatenate((np.cos(x), np.sin(x)), axis=1)
 
-    n = 10
     t = np.arange(1000)
-    beta = np.random.normal(size=2 * n) * 0.1
+    beta = np.random.normal(size=2 * n_components) * 0.1
 
-    seasonailty = X(t, 365.25, n) @ beta
+    seasonality = X(t, 365.25, n_components) @ beta
 
-    return trend * seasonailty
-
-
-def add_subplot():
-    fig = plt.gcf()
-    n = len(fig.axes)
-    for i in range(n):
-        fig.axes[i].change_geometry(n + 1, 1, i + 1)
-    w, h = fig.get_size_inches()
-    fig.set_size_inches(w, h + 8)
-    return fig.add_subplot(len(fig.axes) + 1, 1, len(fig.axes) + 1)
+    return (
+        pd.DataFrame(
+            {"t": pd.date_range("2018-1-1", periods=len(t)), "value": seasonality}
+        ),
+        beta,
+    )

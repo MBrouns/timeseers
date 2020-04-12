@@ -15,7 +15,7 @@ class LinearTrend(TimeSeriesModel):
 
     def definition(self, model, X, scale_factor):
         t = X["t"].values
-        self.s = np.linspace(0, np.max(t), self.n_changepoints + 1)[1:]
+        self.s = np.linspace(0, np.max(t), self.n_changepoints + 2)[1:-1]
 
         with model:
             A = (t[:, None] > self.s) * 1.0
