@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 base_packages = ["numpy>=1.15.4", "pandas>=0.23.4", "pymc3>=3.8"]
 plot_packages = ["matplotlib>=3.2.1"]
-dev_packages = ["pytest==5.3.4", "flake8>=3.7.9"]
+dev_packages = ["pytest==5.3.4", "flake8>=3.7.9", "hypothesis==5.8.3"]
 
 
 def read(fname):

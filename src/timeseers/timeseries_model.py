@@ -16,11 +16,11 @@ class TimeSeriesModel(ABC):
 
         del X
         mu = self.definition(
-            model, X_scaled, self._X_scaler_.max_["t"] - self._X_scaler_.min_["t"]
+            model, X_scaled, self._X_scaler_.scale_factor_
         )
         with model:
             sigma = pm.HalfCauchy("sigma", 0.5)
-            pm.Normal("obs", mu=mu, sd=sigma, observed=y_scaled)
+            pm.Normal("obs", mu=mu, sd=sigma, observed=y)
             self.trace_ = pm.sample(**sample_kwargs)
 
     def plot_components(self, X_true=None, y_true=None, fig=None):

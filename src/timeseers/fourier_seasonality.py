@@ -6,7 +6,7 @@ from timeseers.utils import dot, add_subplot
 
 
 class FourierSeasonality(TimeSeriesModel):
-    def __init__(self, n: int = 10, period: pd.Timedelta = pd.Timedelta(days=365)):
+    def __init__(self, n: int = 10, period: pd.Timedelta = pd.Timedelta(days=365.25)):
         self.n = n
         self.period = period
         super().__init__()
@@ -18,10 +18,12 @@ class FourierSeasonality(TimeSeriesModel):
 
     def definition(self, model, X, scale_factor):
         t = X["t"].values
+        # print(t)
         self.p_ = self.period / scale_factor
+        # print(self.p_)
 
         with model:
-            beta = pm.Normal("beta", 0, 10, shape=self.n * 2)
+            beta = pm.Normal("beta", 0, 1, shape=self.n * 2)
             seasonality = dot(self._X_t(t, self.p_, self.n), beta)
 
         return seasonality

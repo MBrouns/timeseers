@@ -15,5 +15,5 @@ def trend_data(request):
 def seasonal_data(request):
     np.random.seed(42)
     n_components = request.param
-    data, beta = utils.seasonal_data(n_components)
+    data, beta = utils.seasonal_data(n_components, noise=0.0001)
     return data, beta, n_components

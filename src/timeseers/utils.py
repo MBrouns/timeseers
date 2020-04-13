@@ -11,17 +11,20 @@ class MinMaxScaler:
     def fit(self, df):
         self.max_ = df.max()
         self.min_ = df.min()
+        self.scale_factor_ = np.where(df.max() != df.min(), df.max() - df.min(), 1)
+
+        return self
 
     def transform(self, df):
         df = df.copy()
-        return (df - self.min_) / (self.max_ - self.min_)
+        return (df - self.min_) / self.scale_factor_
 
     def fit_transform(self, df):
         self.fit(df)
         return self.transform(df)
 
     def inv_transform(self, df):
-        return df * (self.max_ - self.min_) + self.min_
+        return df * self.scale_factor_ + self.min_
 
 
 def add_subplot(height=5):
@@ -61,15 +64,15 @@ def trend_data(n_changepoints, location="spaced", noise=0.001):
     )
 
 
-def seasonal_data(n_components):
+def seasonal_data(n_components, noise=0.001):
     def X(t, p=365.25, n=10):
         x = 2 * np.pi * (np.arange(n) + 1) * t[:, None] / p
         return np.concatenate((np.cos(x), np.sin(x)), axis=1)
 
-    t = np.arange(1000)
-    beta = np.random.normal(size=2 * n_components) * 0.1
+    t = np.linspace(0, 1, 1000)
+    beta = np.random.normal(size=2 * n_components)
 
-    seasonality = X(t, 365.25, n_components) @ beta
+    seasonality = X(t, 365.25 / len(t), n_components) @ beta + np.random.randn(len(t)) * noise
 
     return (
         pd.DataFrame(
