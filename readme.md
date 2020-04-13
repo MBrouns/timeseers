@@ -1,3 +1,5 @@
+![Unit Tests](https://github.com/MBrouns/timeseers/workflows/Unit%20Tests/badge.svg?branch=master)
+
 <img src="images/timeseers.png" width="35%" height="35%" align="right" />
 
 # TimeSeers
