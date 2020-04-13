@@ -7,24 +7,44 @@ def dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
+class IdentityScaler:
+    def fit(self, data):
+        self.scale_factor_ = 1
+        return self
+
+    def transform(self, data):
+        return data
+
+    def fit_transform(self, data):
+        return data
+
+
 class MinMaxScaler:
-    def fit(self, df):
-        self.max_ = df.max()
-        self.min_ = df.min()
-        self.scale_factor_ = np.where(df.max() != df.min(), df.max() - df.min(), 1)
+    def fit(self, data):
+        if isinstance(data, pd.DataFrame):
+            self.max_ = data.max(axis=0)
+            self.min_ = data.min(axis=0)
+            self.scale_factor_ = (self.max_ - self.min_).where(self.max_ != self.min_, 1)
+        if isinstance(data, np.ndarray):
+            self.max_ = data.max(axis=0)[None, ...]
+            self.min_ = data.min(axis=0)[None, ...]
+            self.scale_factor_ = np.where(self.max_ != self.min_, self.max_ - self.min_, 1)
+        if isinstance(data, pd.Series):
+            self.max_ = data.max()
+            self.min_ = data.min()
+            self.scale_factor_ = self.max_ - self.min_
 
         return self
 
-    def transform(self, df):
-        df = df.copy()
-        return (df - self.min_) / self.scale_factor_
+    def transform(self, series):
+        return (series - self.min_) / self.scale_factor_
 
-    def fit_transform(self, df):
-        self.fit(df)
-        return self.transform(df)
+    def fit_transform(self, series):
+        self.fit(series)
+        return self.transform(series)
 
-    def inv_transform(self, df):
-        return df * self.scale_factor_ + self.min_
+    def inv_transform(self, series):
+        return series * self.scale_factor_ + self.min_
 
 
 def add_subplot(height=5):

@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 
 
 class TimeSeriesModel(ABC):
-    def fit(self, X, y, **sample_kwargs):
-        self._X_scaler_ = MinMaxScaler()
-        self._y_scaler_ = MinMaxScaler()
+    def fit(self, X, y, X_scaler=MinMaxScaler, y_scaler=MinMaxScaler, **sample_kwargs):
+        self._X_scaler_ = X_scaler()
+        self._y_scaler_ = y_scaler()
 
         X_scaled = self._X_scaler_.fit_transform(X)
         y_scaled = self._y_scaler_.fit_transform(y)
@@ -20,7 +20,7 @@ class TimeSeriesModel(ABC):
         )
         with model:
             sigma = pm.HalfCauchy("sigma", 0.5)
-            pm.Normal("obs", mu=mu, sd=sigma, observed=y)
+            pm.Normal("obs", mu=mu, sd=sigma, observed=y_scaled)
             self.trace_ = pm.sample(**sample_kwargs)
 
     def plot_components(self, X_true=None, y_true=None, fig=None):
