@@ -6,27 +6,31 @@ import pymc3 as pm
 
 class LinearTrend(TimeSeriesModel):
     def __init__(
-        self, n_changepoints=None, changepoints_prior_scale=0.05, growth_prior_scale=1
+        self, n_changepoints=None, changepoints_prior_scale=0.05, growth_prior_scale=1,
+            pool_cols=None, pool_type=None
     ):
         self.n_changepoints = n_changepoints
         self.changepoints_prior_scale = changepoints_prior_scale
         self.growth_prior_scale = growth_prior_scale
+        self.pool_cols = pool_cols
+        self.pool_type = pool_type
         super().__init__()
 
     def definition(self, model, X, scale_factor):
         t = X["t"].values
         self.s = np.linspace(0, np.max(t), self.n_changepoints + 2)[1:-1]
 
-        with model:
-            A = (t[:, None] > self.s) * 1.0
-            k = pm.Normal("k", 0, self.growth_prior_scale)
-            delta = pm.Laplace(
-                "delta", 0, self.changepoints_prior_scale, shape=self.n_changepoints
-            )
-            m = pm.Normal("m", 0, 5)
-            gamma = -self.s * delta
+        if self.pool_type is None:
+            with model:
+                A = (t[:, None] > self.s) * 1.0
+                k = pm.Normal("k", 0, self.growth_prior_scale)
+                delta = pm.Laplace(
+                    "delta", 0, self.changepoints_prior_scale, shape=self.n_changepoints
+                )
+                m = pm.Normal("m", 0, 5)
+                gamma = -self.s * delta
 
-            g = (k + dot(A, delta)) * t + (m + dot(A, gamma))
+                g = (k + dot(A, delta)) * t + (m + dot(A, gamma))
         return g
 
     def _predict(self, trace, t):
