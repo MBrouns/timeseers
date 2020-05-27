@@ -6,9 +6,11 @@ from timeseers.utils import dot, add_subplot
 
 
 class FourierSeasonality(TimeSeriesModel):
-    def __init__(self, n: int = 10, period: pd.Timedelta = pd.Timedelta(days=365.25)):
+    def __init__(self, n: int = 10, period: pd.Timedelta = pd.Timedelta(days=365.25), pool_cols=None, pool_type=None):
         self.n = n
         self.period = period
+        self.pool_cols = pool_cols
+        self.pool_type = pool_type
         super().__init__()
 
     @staticmethod
@@ -18,11 +20,19 @@ class FourierSeasonality(TimeSeriesModel):
 
     def definition(self, model, X, scale_factor):
         t = X["t"].values
+        group = X[self.pool_cols].cat.codes.values
+        n_groups = group.nunique()
         self.p_ = self.period / scale_factor['t']
 
-        with model:
-            beta = pm.Normal("beta", 0, 1, shape=self.n * 2)
-            seasonality = dot(self._X_t(t, self.p_, self.n), beta)
+        if self.pool_type == 'complete':
+            with model:
+                beta = pm.Normal("beta", 0, 1, shape=self.n * 2)
+                seasonality = dot(self._X_t(t, self.p_, self.n), beta)
+
+        if self.pool_type == 'none':
+            with model:
+                beta = pm.Normal("beta", 0, 1, shape=(n_groups, self.n * 2))
+                seasonality = pm.math.sum(self._X_t(t, self.p_, self.n) * beta[group], axis=1)
 
         return seasonality
 
