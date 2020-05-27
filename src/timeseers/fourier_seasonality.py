@@ -21,17 +21,25 @@ class FourierSeasonality(TimeSeriesModel):
     def definition(self, model, X, scale_factor):
         t = X["t"].values
         group = X[self.pool_cols].cat.codes.values
-        n_groups = group.nunique()
+        n_groups = X[self.pool_cols].nunique()
         self.p_ = self.period / scale_factor['t']
+        n_params = self.n * 2
 
         if self.pool_type == 'complete':
             with model:
-                beta = pm.Normal("beta", 0, 1, shape=self.n * 2)
+                beta = pm.Normal("beta", 0, 1, shape=n_params)
                 seasonality = dot(self._X_t(t, self.p_, self.n), beta)
 
         if self.pool_type == 'none':
             with model:
-                beta = pm.Normal("beta", 0, 1, shape=(n_groups, self.n * 2))
+                beta = pm.Normal("beta", 0, 1, shape=(n_groups, n_params))
+                seasonality = pm.math.sum(self._X_t(t, self.p_, self.n) * beta[group], axis=1)
+
+        if self.pool_type == 'partial':
+            with model:
+                mu_beta = pm.Normal("mu_beta", 0, 1, shape=n_params)   # TODO: add as parameters
+                sigma_beta = pm.HalfCauchy("sigma_beta", 1, shape=n_params)
+                beta = pm.Normal("beta", mu_beta, sigma_beta, shape=(n_groups, n_params))
                 seasonality = pm.math.sum(self._X_t(t, self.p_, self.n) * beta[group], axis=1)
 
         return seasonality
