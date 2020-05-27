@@ -48,14 +48,14 @@ class FourierSeasonality(TimeSeriesModel):
         return self._X_t(t, self.p_, self.n) @ trace["beta"].T
 
     def plot(self, trace, scaled_t, y_scaler):
-        scaled_s = pd.Series(self._predict(trace, scaled_t).mean(axis=1), name='value')
+        scaled_s = self._predict(trace, scaled_t).mean(axis=1)
         s = y_scaler.inv_transform(scaled_s)
 
         ax = add_subplot()
         ax.set_title(str(self))
         ax.set_xticks([])
         ax.plot(scaled_t, s, c="lightblue")
-        return scaled_s
+        return scaled_s[..., None]
 
     def __repr__(self):
         return f"FourierSeasonality(n={self.n})"
