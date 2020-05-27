@@ -7,7 +7,7 @@ import pymc3 as pm
 class LinearTrend(TimeSeriesModel):
     def __init__(
             self, n_changepoints=None, changepoints_prior_scale=0.05, growth_prior_scale=1,
-            pool_cols=None, pool_type=None
+            pool_cols=None, pool_type='complete'
     ):
         self.n_changepoints = n_changepoints
         self.changepoints_prior_scale = changepoints_prior_scale
@@ -40,10 +40,10 @@ class LinearTrend(TimeSeriesModel):
 
                 gamma = -self.s * delta[group, :]
 
-                g = (k[group] + math.sum(A * delta[group], axis=1)) * t + (m[group] + math.sum(A * gamma, axis=1))
+                g = (k[group] + pm.math.sum(A * delta[group], axis=1)) * t + (m[group] + pm.math.sum(A * gamma, axis=1))
             return g
 
-        if self.pool_type is 'complete':
+        if self.pool_type is 'none':
             with model:
                 A = (t[:, None] > self.s) * 1.0
                 k = pm.Normal("k", 0, self.growth_prior_scale, shape=n_pools)
@@ -53,10 +53,10 @@ class LinearTrend(TimeSeriesModel):
                 m = pm.Normal("m", 0, 5, shape=n_pools)
                 gamma = -self.s * delta[group, :]
 
-                g = (k[group] + math.sum(A * delta[group], axis=1)) * t + (m[group] + math.sum(A * gamma, axis=1))
+                g = (k[group] + pm.math.sum(A * delta[group], axis=1)) * t + (m[group] + pm.math.sum(A * gamma, axis=1))
             return g
 
-        if self.pool_type is None:
+        if self.pool_type is 'complete':
             with model:
                 A = (t[:, None] > self.s) * 1.0
                 k = pm.Normal("k", 0, self.growth_prior_scale)
