@@ -22,6 +22,27 @@ class LinearTrend(TimeSeriesModel):
         self.s = np.linspace(0, np.max(t), self.n_changepoints + 2)[1:-1]
         n_pools = X[self.pool_cols].nunique()
 
+        if self.pool_type is 'partial':
+            with model:
+                A = (t[:, None] > self.s) * 1.0
+
+                sigma_k = pm.HalfCauchy('sigma_k', beta=self.growth_prior_scale)
+                offset_k = pm.Normal('offset_k', mu=0, sd=1, shape=n_pools)
+                k = pm.Deterministic("k", 0 + offset_k * sigma_k)
+
+                sigma_delta = pm.HalfCauchy('sigma_delta', beta=self.changepoints_prior_scale)
+                offset_delta = pm.Laplace('offset_delta', 0, 1, shape=(n_pools, self.n_changepoints))
+                delta = pm.Deterministic("delta", 0 + offset_delta * sigma_delta)
+
+                sigma_m = pm.HalfCauchy('sigma_m', beta=1.5)
+                offset_m = pm.Normal('offset_m', mu=0, sd=1, shape=n_pools)
+                m = pm.Deterministic("m", 0 + offset_m * sigma_m)
+
+                gamma = -self.s * delta[group, :]
+
+                g = (k[group] + math.sum(A * delta[group], axis=1)) * t + (m[group] + math.sum(A * gamma, axis=1))
+            return g
+
         if self.pool_type is 'complete':
             with model:
                 A = (t[:, None] > self.s) * 1.0
@@ -32,7 +53,7 @@ class LinearTrend(TimeSeriesModel):
                 m = pm.Normal("m", 0, 5, shape=n_pools)
                 gamma = -self.s * delta[group, :]
 
-                g = (k[group] + pm.math.sum(A * delta[group], axis=1)) * t + (m[group] + pm.math.sum(A * gamma, axis=1))
+                g = (k[group] + math.sum(A * delta[group], axis=1)) * t + (m[group] + math.sum(A * gamma, axis=1))
             return g
 
         if self.pool_type is None:
