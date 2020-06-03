@@ -1,6 +1,6 @@
 import numpy as np
 from timeseers.timeseries_model import TimeSeriesModel
-from timeseers.utils import dot, add_subplot
+from timeseers.utils import dot, add_subplot, get_group_definition
 import pymc3 as pm
 
 
@@ -18,16 +18,7 @@ class LinearTrend(TimeSeriesModel):
 
     def definition(self, model, X, scale_factor):
         t = X["t"].values
-
-        if self.pool_type == 'complete':
-            group = np.zeros(len(X), dtype='int')
-            self.groups_ = {0: 'all'}
-            n_pools = 1
-        else:
-            group = X[self.pool_cols].cat.codes.values
-            self.groups_ = dict(enumerate(X[self.pool_cols].cat.categories))
-            n_pools = X[self.pool_cols].nunique()
-
+        group, n_groups, self.groups_ = get_group_definition(X, self.pool_cols, self.pool_type)
         self.s = np.linspace(0, np.max(t), self.n_changepoints + 2)[1:-1]
 
         with model:
@@ -35,20 +26,20 @@ class LinearTrend(TimeSeriesModel):
 
             if self.pool_type == 'partial':
                 sigma_k = pm.HalfCauchy('sigma_k', beta=self.growth_prior_scale)
-                offset_k = pm.Normal('offset_k', mu=0, sd=1, shape=n_pools)
+                offset_k = pm.Normal('offset_k', mu=0, sd=1, shape=n_groups)
                 k = pm.Deterministic("k", offset_k * sigma_k)
 
                 sigma_delta = pm.HalfCauchy('sigma_delta', beta=self.changepoints_prior_scale)
-                offset_delta = pm.Laplace('offset_delta', 0, 1, shape=(n_pools, self.n_changepoints))
+                offset_delta = pm.Laplace('offset_delta', 0, 1, shape=(n_groups, self.n_changepoints))
                 delta = pm.Deterministic("delta", offset_delta * sigma_delta)
 
             else:
                 delta = pm.Laplace(
-                    "delta", 0, self.changepoints_prior_scale, shape=(n_pools, self.n_changepoints)
+                    "delta", 0, self.changepoints_prior_scale, shape=(n_groups, self.n_changepoints)
                 )
-                k = pm.Normal("k", 0, self.growth_prior_scale, shape=n_pools)
+                k = pm.Normal("k", 0, self.growth_prior_scale, shape=n_groups)
 
-            m = pm.Normal("m", 0, 5, shape=n_pools)
+            m = pm.Normal("m", 0, 5, shape=n_groups)
 
             gamma = -self.s * delta[group, :]
 
