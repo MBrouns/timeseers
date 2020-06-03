@@ -110,7 +110,7 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
+data/
 notebooks/
 # Pyre type checker
 .pyre/
