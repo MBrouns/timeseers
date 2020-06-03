@@ -36,22 +36,19 @@ class LinearTrend(TimeSeriesModel):
             if self.pool_type == 'partial':
                 sigma_k = pm.HalfCauchy('sigma_k', beta=self.growth_prior_scale)
                 offset_k = pm.Normal('offset_k', mu=0, sd=1, shape=n_pools)
-                k = pm.Deterministic("k", 0 + offset_k * sigma_k)
+                k = pm.Deterministic("k", offset_k * sigma_k)
 
                 sigma_delta = pm.HalfCauchy('sigma_delta', beta=self.changepoints_prior_scale)
                 offset_delta = pm.Laplace('offset_delta', 0, 1, shape=(n_pools, self.n_changepoints))
-                delta = pm.Deterministic("delta", 0 + offset_delta * sigma_delta)
-
-                sigma_m = pm.HalfCauchy('sigma_m', beta=1.5)
-                offset_m = pm.Normal('offset_m', mu=0, sd=1, shape=n_pools)
-                m = pm.Deterministic("m", 0 + offset_m * sigma_m)
+                delta = pm.Deterministic("delta", offset_delta * sigma_delta)
 
             else:
-                k = pm.Normal("k", 0, self.growth_prior_scale, shape=n_pools)
                 delta = pm.Laplace(
                     "delta", 0, self.changepoints_prior_scale, shape=(n_pools, self.n_changepoints)
                 )
-                m = pm.Normal("m", 0, 5, shape=n_pools)
+                k = pm.Normal("k", 0, self.growth_prior_scale, shape=n_pools)
+
+            m = pm.Normal("m", 0, 5, shape=n_pools)
 
             gamma = -self.s * delta[group, :]
 
