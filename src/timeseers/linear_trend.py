@@ -1,6 +1,6 @@
 import numpy as np
 from timeseers.timeseries_model import TimeSeriesModel
-from timeseers.utils import dot, add_subplot, get_group_definition
+from timeseers.utils import add_subplot, get_group_definition
 import pymc3 as pm
 
 
@@ -30,12 +30,17 @@ class LinearTrend(TimeSeriesModel):
                 k = pm.Deterministic("k", offset_k * sigma_k)
 
                 sigma_delta = pm.HalfCauchy('sigma_delta', beta=self.changepoints_prior_scale)
-                offset_delta = pm.Laplace('offset_delta', 0, 1, shape=(n_groups, self.n_changepoints))
+                offset_delta = pm.Laplace(
+                    'offset_delta', 0, 1, shape=(n_groups, self.n_changepoints)
+                )
                 delta = pm.Deterministic("delta", offset_delta * sigma_delta)
 
             else:
                 delta = pm.Laplace(
-                    "delta", 0, self.changepoints_prior_scale, shape=(n_groups, self.n_changepoints)
+                    "delta",
+                    0,
+                    self.changepoints_prior_scale,
+                    shape=(n_groups, self.n_changepoints)
                 )
                 k = pm.Normal("k", 0, self.growth_prior_scale, shape=n_groups)
 
@@ -43,7 +48,10 @@ class LinearTrend(TimeSeriesModel):
 
             gamma = -self.s * delta[group, :]
 
-            g = (k[group] + pm.math.sum(A * delta[group], axis=1)) * t + (m[group] + pm.math.sum(A * gamma, axis=1))
+            g = (
+                (k[group] + pm.math.sum(A * delta[group], axis=1)) * t
+                + (m[group] + pm.math.sum(A * gamma, axis=1))
+            )
         return g
 
     def _predict(self, trace, t, pool_group=0):
