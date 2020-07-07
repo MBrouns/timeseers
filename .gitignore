@@ -114,3 +114,6 @@ data/
 notebooks/
 # Pyre type checker
 .pyre/
+
+# VScode settings
+.vscode/

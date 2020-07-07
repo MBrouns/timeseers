@@ -2,11 +2,17 @@ import numpy as np
 import pandas as pd
 import pymc3 as pm
 from timeseers.timeseries_model import TimeSeriesModel
-from timeseers.utils import dot, add_subplot, get_group_definition
+from timeseers.utils import add_subplot, get_group_definition
 
 
 class FourierSeasonality(TimeSeriesModel):
-    def __init__(self, n: int = 10, period: pd.Timedelta = pd.Timedelta(days=365.25), pool_cols=None, pool_type='complete'):
+    def __init__(
+        self,
+        n: int = 10,
+        period: pd.Timedelta = pd.Timedelta(days=365.25),
+        pool_cols=None,
+        pool_type='complete'
+    ):
         self.n = n
         self.period = period
         self.pool_cols = pool_cols
@@ -26,7 +32,8 @@ class FourierSeasonality(TimeSeriesModel):
 
         with model:
             if self.pool_type == 'partial':
-                mu_beta = pm.Normal("mu_beta", mu=0, sigma=1, shape=n_params)  # TODO: add as parameters
+                # TODO: add as parameters
+                mu_beta = pm.Normal("mu_beta", mu=0, sigma=1, shape=n_params)
                 sigma_beta = pm.HalfCauchy("sigma_beta", 1, shape=n_params)
                 offset_beta = pm.Normal("offset_beta", 0, 1, shape=(n_groups, n_params))
 
