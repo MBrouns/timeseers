@@ -6,7 +6,7 @@ import pymc3 as pm
 
 class LinearTrend(TimeSeriesModel):
     def __init__(
-            self, n_changepoints=None, changepoints_prior_scale=0.05, growth_prior_scale=1,
+            self, n_changepoints=0, changepoints_prior_scale=0.05, growth_prior_scale=1,
             pool_cols=None, pool_type='complete'
     ):
         self.n_changepoints = n_changepoints
@@ -16,7 +16,7 @@ class LinearTrend(TimeSeriesModel):
         self.pool_type = pool_type
         super().__init__()
 
-    def definition(self, model, X, scale_factor):
+    def _def_with_changepoints(self, model, X, scale_factor):
         t = X["t"].values
         group, n_groups, self.groups_ = get_group_definition(X, self.pool_cols, self.pool_type)
         self.s = np.linspace(0, np.max(t), self.n_changepoints + 2)[1:-1]
@@ -54,7 +54,31 @@ class LinearTrend(TimeSeriesModel):
             )
         return g
 
-    def _predict(self, trace, t, pool_group=0):
+    def _def_no_changepoints(self, model, X, scale_factor):
+        t = X["t"].values
+        group, n_groups, self.groups_ = get_group_definition(X, self.pool_cols, self.pool_type)
+
+        with model:
+            if self.pool_type == 'partial':
+                sigma_k = pm.HalfCauchy('sigma_k', beta=self.growth_prior_scale)
+                offset_k = pm.Normal('offset_k', mu=0, sd=1, shape=n_groups)
+                k = pm.Deterministic("k", offset_k * sigma_k)
+            else:
+                k = pm.Normal("k", 0, self.growth_prior_scale, shape=n_groups)
+
+            m = pm.Normal("m", 0, 5, shape=n_groups)
+
+            g = k[group] * t + m[group]
+
+        return g
+
+    def definition(self, model, X, scale_factor):
+        if self.n_changepoints > 0:
+            return self._def_with_changepoints(model, X, scale_factor)
+
+        return self._def_no_changepoints(model, X, scale_factor)
+
+    def _predict_with_changepoints(self, trace, t, pool_group=0):
         A = (t[:, None] > self.s) * 1
 
         k, m = trace["k"][:, pool_group], trace["m"][:, pool_group]
@@ -62,6 +86,17 @@ class LinearTrend(TimeSeriesModel):
         gamma = -self.s[:, None] * trace["delta"][:, pool_group].T
         offset = m + A @ gamma
         return growth * t[:, None] + offset
+
+    def _predict_no_changepoints(self, trace, t, pool_group=0):
+        k, m = trace["k"][:, pool_group], trace["m"][:, pool_group]
+
+        return k * t[:, None] + m
+
+    def _predict(self, trace, t, pool_group=0):
+        if self.n_changepoints > 0:
+            return self._predict_with_changepoints(trace, t, pool_group)
+
+        return self._predict_no_changepoints(trace, t, pool_group)
 
     def plot(self, trace, scaled_t, y_scaler):
         ax = add_subplot()
@@ -74,8 +109,9 @@ class LinearTrend(TimeSeriesModel):
             ax.plot(scaled_t, trend.mean(axis=1), label=group_name)
             trend_return[:, group_code] = scaled_trend.mean(axis=1)
 
-        for changepoint in self.s:
-            ax.axvline(changepoint, linestyle="--", alpha=0.2, c="k")
+        if hasattr(self, "s"):
+            for changepoint in self.s:
+                ax.axvline(changepoint, linestyle="--", alpha=0.2, c="k")
         ax.legend()
         return trend_return
 
