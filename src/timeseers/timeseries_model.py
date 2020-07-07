@@ -1,12 +1,12 @@
 import pandas as pd
 import pymc3 as pm
-from timeseers.utils import MinMaxScaler, add_subplot
+from timeseers.utils import MinMaxScaler, StdScaler, add_subplot
 import numpy as np
 from abc import ABC, abstractmethod
 
 
 class TimeSeriesModel(ABC):
-    def fit(self, X, y, X_scaler=MinMaxScaler, y_scaler=MinMaxScaler, **sample_kwargs):
+    def fit(self, X, y, X_scaler=MinMaxScaler, y_scaler=StdScaler, **sample_kwargs):
         X_to_scale = X.select_dtypes(exclude='category')
         self._X_scaler_ = X_scaler()
         self._y_scaler_ = y_scaler()
@@ -53,6 +53,9 @@ class TimeSeriesModel(ABC):
     @abstractmethod
     def definition(self, model, X_scaled, scale_factor):
         pass
+
+    def _param_name(self, param):
+        return f"{self.name}-{param}"
 
     def __add__(self, other):
         return AdditiveTimeSeries(self, other)

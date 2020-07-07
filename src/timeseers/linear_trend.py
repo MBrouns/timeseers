@@ -6,7 +6,7 @@ import pymc3 as pm
 
 class LinearTrend(TimeSeriesModel):
     def __init__(
-            self, n_changepoints=None, changepoints_prior_scale=0.05, growth_prior_scale=1,
+            self, name: str = None, n_changepoints=None, changepoints_prior_scale=0.05, growth_prior_scale=1,
             pool_cols=None, pool_type='complete'
     ):
         self.n_changepoints = n_changepoints
@@ -14,6 +14,7 @@ class LinearTrend(TimeSeriesModel):
         self.growth_prior_scale = growth_prior_scale
         self.pool_cols = pool_cols
         self.pool_type = pool_type
+        self.name = name or f"LinearTrend(n_changepoints={n_changepoints})"
         super().__init__()
 
     def definition(self, model, X, scale_factor):
@@ -25,26 +26,21 @@ class LinearTrend(TimeSeriesModel):
             A = (t[:, None] > self.s) * 1.0
 
             if self.pool_type == 'partial':
-                sigma_k = pm.HalfCauchy('sigma_k', beta=self.growth_prior_scale)
-                offset_k = pm.Normal('offset_k', mu=0, sd=1, shape=n_groups)
-                k = pm.Deterministic("k", offset_k * sigma_k)
+                sigma_k = pm.HalfCauchy(self._param_name('sigma_k'), beta=self.growth_prior_scale)
+                offset_k = pm.Normal(self._param_name('offset_k'), mu=0, sd=1, shape=n_groups)
+                k = pm.Deterministic(self._param_name("k"), offset_k * sigma_k)
 
-                sigma_delta = pm.HalfCauchy('sigma_delta', beta=self.changepoints_prior_scale)
-                offset_delta = pm.Laplace(
-                    'offset_delta', 0, 1, shape=(n_groups, self.n_changepoints)
-                )
-                delta = pm.Deterministic("delta", offset_delta * sigma_delta)
+                sigma_delta = pm.HalfCauchy(self._param_name('sigma_delta'), beta=self.changepoints_prior_scale)
+                offset_delta = pm.Laplace(self._param_name('offset_delta'), 0, 1, shape=(n_groups, self.n_changepoints))
+                delta = pm.Deterministic(self._param_name("delta"), offset_delta * sigma_delta)
 
             else:
                 delta = pm.Laplace(
-                    "delta",
-                    0,
-                    self.changepoints_prior_scale,
-                    shape=(n_groups, self.n_changepoints)
+                    self._param_name("delta"), 0, self.changepoints_prior_scale, shape=(n_groups, self.n_changepoints)
                 )
-                k = pm.Normal("k", 0, self.growth_prior_scale, shape=n_groups)
+                k = pm.Normal(self._param_name("k"), 0, self.growth_prior_scale, shape=n_groups)
 
-            m = pm.Normal("m", 0, 5, shape=n_groups)
+            m = pm.Normal(self._param_name("m"), 0, 5, shape=n_groups)
 
             gamma = -self.s * delta[group, :]
 
@@ -57,9 +53,9 @@ class LinearTrend(TimeSeriesModel):
     def _predict(self, trace, t, pool_group=0):
         A = (t[:, None] > self.s) * 1
 
-        k, m = trace["k"][:, pool_group], trace["m"][:, pool_group]
-        growth = k + A @ trace["delta"][:, pool_group].T
-        gamma = -self.s[:, None] * trace["delta"][:, pool_group].T
+        k, m = trace[self._param_name("k")][:, pool_group], trace[self._param_name("m")][:, pool_group]
+        growth = k + A @ trace[self._param_name("delta")][:, pool_group].T
+        gamma = -self.s[:, None] * trace[self._param_name("delta")][:, pool_group].T
         offset = m + A @ gamma
         return growth * t[:, None] + offset
 

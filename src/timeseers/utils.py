@@ -47,6 +47,25 @@ class MinMaxScaler:
         return series * self.scale_factor_ + self.min_
 
 
+class StdScaler:
+    def fit(self, data):
+        if isinstance(data, pd.Series):
+            self.mean_ = data.mean()
+            self.std_ = data.std()
+
+        return self
+
+    def transform(self, series):
+        return (series - self.mean_) / self.std_
+
+    def fit_transform(self, series):
+        self.fit(series)
+        return self.transform(series)
+
+    def inv_transform(self, series):
+        return series * self.std_ + self.mean_
+
+
 def add_subplot(height=5):
     fig = plt.gcf()
     n = len(fig.axes)
