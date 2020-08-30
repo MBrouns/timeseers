@@ -6,6 +6,7 @@ from timeseers.utils import add_subplot, get_group_definition
 
 
 class FourierSeasonality(TimeSeriesModel):
+<<<<<<< HEAD
     def __init__(
         self,
         n: int = 10,
@@ -13,10 +14,14 @@ class FourierSeasonality(TimeSeriesModel):
         pool_cols=None,
         pool_type='complete'
     ):
+=======
+    def __init__(self, name: str = None, n: int = 10, period: pd.Timedelta = pd.Timedelta(days=365.25), pool_cols=None, pool_type='complete'):
+>>>>>>> 0c2019a... add names to the parameters inside the timeseries components so that we can have multiple of the same component in a single model
         self.n = n
         self.period = period
         self.pool_cols = pool_cols
         self.pool_type = pool_type
+        self.name = name or f"FourierSeasonality(period={self.period})"
         super().__init__()
 
     @staticmethod
@@ -32,21 +37,21 @@ class FourierSeasonality(TimeSeriesModel):
 
         with model:
             if self.pool_type == 'partial':
-                # TODO: add as parameters
-                mu_beta = pm.Normal("mu_beta", mu=0, sigma=1, shape=n_params)
-                sigma_beta = pm.HalfCauchy("sigma_beta", 1, shape=n_params)
-                offset_beta = pm.Normal("offset_beta", 0, 1, shape=(n_groups, n_params))
 
-                beta = pm.Deterministic("beta", mu_beta + offset_beta * sigma_beta)
+                mu_beta = pm.Normal(self._param_name("mu_beta"), mu=0, sigma=1, shape=n_params)  # TODO: add as parameters
+                sigma_beta = pm.HalfCauchy(self._param_name("sigma_beta"), 1, shape=n_params)
+                offset_beta = pm.Normal(self._param_name("offset_beta"), 0, 1, shape=(n_groups, n_params))
+
+                beta = pm.Deterministic(self._param_name("beta"), mu_beta + offset_beta * sigma_beta)
             else:
-                beta = pm.Normal("beta", 0, 1, shape=(n_groups, n_params))
+                beta = pm.Normal(self._param_name("beta"), 0, 1, shape=(n_groups, n_params))
 
             seasonality = pm.math.sum(self._X_t(t, self.p_, self.n) * beta[group], axis=1)
 
         return seasonality
 
     def _predict(self, trace, t, pool_group=0):
-        return self._X_t(t, self.p_, self.n) @ trace["beta"][:, pool_group].T
+        return self._X_t(t, self.p_, self.n) @ trace[self._param_name("beta")][:, pool_group].T
 
     def plot(self, trace, scaled_t, y_scaler):
         ax = add_subplot()
@@ -63,4 +68,7 @@ class FourierSeasonality(TimeSeriesModel):
         return seasonality_return
 
     def __repr__(self):
-        return f"FourierSeasonality(n={self.n})"
+        return f"FourierSeasonality(n={self.n}, " \
+               f"period={self.period}," \
+               f"pool_cols={self.pool_cols}, " \
+               f"pool_type={self.pool_type}"
