@@ -7,6 +7,9 @@ from abc import ABC, abstractmethod
 
 class TimeSeriesModel(ABC):
     def fit(self, X, y, X_scaler=MinMaxScaler, y_scaler=StdScaler, **sample_kwargs):
+        if not X.index.is_monotonic_increasing:
+            raise ValueError('index of X is not monotonically increasing. You might want to call `.reset_index()`')
+
         X_to_scale = X.select_dtypes(exclude='category')
         self._X_scaler_ = X_scaler()
         self._y_scaler_ = y_scaler()
@@ -14,7 +17,6 @@ class TimeSeriesModel(ABC):
         X_scaled = self._X_scaler_.fit_transform(X_to_scale)
         y_scaled = self._y_scaler_.fit_transform(y)
         model = pm.Model()
-
         X_scaled = X_scaled.join(X.select_dtypes('category'))
         del X
         mu = self.definition(
