@@ -72,6 +72,9 @@ class TimeSeriesModel(ABC):
     def __mul__(self, other):
         return MultiplicativeTimeSeries(self, other)
 
+    def __str__(self):
+        return self.name
+
 
 class AdditiveTimeSeries(TimeSeriesModel):
     def __init__(self, left, right):
