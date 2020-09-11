@@ -12,11 +12,10 @@ class Constant(TimeSeriesModel):
         self.pool_type = pool_type
         self.lower = lower
         self.upper = upper
-        self.name = name or f"Constant(lower={self.lower}, upper={self.upper} pool_cols='{self.pool_cols}', pool_type='{self.pool_type}')"
+        self.name = name or f"Constant(lower={self.lower}, upper={self.upper}, pool_cols='{self.pool_cols}', pool_type='{self.pool_type}')"
         super().__init__()
 
     def definition(self, model, X, scale_factor):
-        t = X["t"].values
         group, n_groups, self.groups_ = get_group_definition(X, self.pool_cols, self.pool_type)
 
         with model:
@@ -38,15 +37,15 @@ class Constant(TimeSeriesModel):
     def plot(self, trace, scaled_t, y_scaler):
         ax = add_subplot()
         ax.set_title(str(self))
-        ax.set_xticks([])
         trend_return = np.empty((len(scaled_t), len(self.groups_)))
+        plot_data = []
         for group_code, group_name in self.groups_.items():
             y_hat = np.mean(self._predict(trace, scaled_t, group_code), axis=1)
-            ax.plot(scaled_t, y_scaler.inv_transform(y_hat), label=group_name)
             trend_return[:, group_code] = y_hat
-        delta = self.upper - self.lower
-        ax.set_ylim([self.lower - 0.1 * delta, self.upper + 0.1 * delta])
-        ax.legend()
+            plot_data.append((group_name, y_hat[0]))
+        ax.bar(*zip(*plot_data))
+        ax.axhline(0, c='k', linewidth=3)
+
         return trend_return
 
     def __repr__(self):
