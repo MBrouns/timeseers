@@ -6,19 +6,18 @@ from timeseers.utils import add_subplot, get_group_definition
 
 
 class FourierSeasonality(TimeSeriesModel):
-<<<<<<< HEAD
     def __init__(
         self,
+        name: str = None,
         n: int = 10,
         period: pd.Timedelta = pd.Timedelta(days=365.25),
+        shrinkage_strength=100,
         pool_cols=None,
         pool_type='complete'
     ):
-=======
-    def __init__(self, name: str = None, n: int = 10, period: pd.Timedelta = pd.Timedelta(days=365.25), pool_cols=None, pool_type='complete'):
->>>>>>> 0c2019a... add names to the parameters inside the timeseries components so that we can have multiple of the same component in a single model
         self.n = n
         self.period = period
+        self.shrinkage_strength = shrinkage_strength
         self.pool_cols = pool_cols
         self.pool_type = pool_type
         self.name = name or f"FourierSeasonality(period={self.period})"
@@ -39,8 +38,8 @@ class FourierSeasonality(TimeSeriesModel):
             if self.pool_type == 'partial':
 
                 mu_beta = pm.Normal(self._param_name("mu_beta"), mu=0, sigma=1, shape=n_params)  # TODO: add as parameters
-                sigma_beta = pm.HalfCauchy(self._param_name("sigma_beta"), 1, shape=n_params)
-                offset_beta = pm.Normal(self._param_name("offset_beta"), 0, 1, shape=(n_groups, n_params))
+                sigma_beta = pm.HalfNormal(self._param_name("sigma_beta"), 0.1, shape=n_params)
+                offset_beta = pm.Normal(self._param_name("offset_beta"), 0, 1 / self.shrinkage_strength, shape=(n_groups, n_params))
 
                 beta = pm.Deterministic(self._param_name("beta"), mu_beta + offset_beta * sigma_beta)
             else:
@@ -56,13 +55,13 @@ class FourierSeasonality(TimeSeriesModel):
     def plot(self, trace, scaled_t, y_scaler):
         ax = add_subplot()
         ax.set_title(str(self))
-        ax.set_xticks([])
 
         seasonality_return = np.empty((len(scaled_t), len(self.groups_)))
         for group_code, group_name in self.groups_.items():
             scaled_s = self._predict(trace, scaled_t, group_code)
             s = y_scaler.inv_transform(scaled_s)
-            ax.plot(scaled_t, s.mean(axis=1), label=group_name)
+            ax.plot(list(range(self.period.days)), s.mean(axis=1)[:self.period.days], label=group_name)
+
             seasonality_return[:, group_code] = scaled_s.mean(axis=1)
 
         return seasonality_return
