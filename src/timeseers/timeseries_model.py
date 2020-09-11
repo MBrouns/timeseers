@@ -25,24 +25,31 @@ class TimeSeriesModel(ABC):
             pm.Normal("obs", mu=mu, sd=sigma, observed=y_scaled)
             self.trace_ = pm.sample(**sample_kwargs)
 
-    def plot_components(self, X_true=None, y_true=None, fig=None):
+    def plot_components(self, X_true=None, y_true=None, groups=None, fig=None):
         import matplotlib.pyplot as plt
 
         if fig is None:
             fig = plt.figure(figsize=(18, 1))
 
-        n_points = 1000
+        lookahead_scale = 0.3
         t_min, t_max = self._X_scaler_.min_["t"], self._X_scaler_.max_["t"]
-        t = pd.date_range(t_min, t_max, periods=n_points)
+        t_max += (t_max - t_min) * lookahead_scale
+        t = pd.date_range(t_min, t_max, freq='D')
 
-        scaled_t = np.linspace(0, 1, n_points)
+        scaled_t = np.linspace(0, 1 + lookahead_scale, len(t))
         total = self.plot(self.trace_, scaled_t, self._y_scaler_)
 
         ax = add_subplot()
         ax.set_title("overall")
         ax.plot(t, self._y_scaler_.inv_transform(total))
+
         if X_true is not None and y_true is not None:
-            ax.scatter(X_true["t"], y_true, c="k")
+            if groups is not None:
+                for group in groups.cat.categories:
+                    mask = groups == group
+                    ax.scatter(X_true["t"][mask], y_true[mask], label=group, marker='.', alpha=0.2)
+            else:
+                ax.scatter(X_true["t"], y_true, c="k", marker='.', alpha=0.2)
         fig.tight_layout()
         return fig
 
