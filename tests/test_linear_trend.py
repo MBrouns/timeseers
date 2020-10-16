@@ -22,7 +22,9 @@ def test_can_fit_generated_data_no_changepoints():
 
     trend = k * t + m
 
-    data = pd.DataFrame({"t": pd.date_range("2018-1-1", periods=len(t)), "value": trend})
+    data = pd.DataFrame(
+        {"t": pd.date_range("2018-1-1", periods=len(t)), "value": trend}
+    )
 
     model = LinearTrend(n_changepoints=0)
     model.fit(data, data["value"])

@@ -24,11 +24,15 @@ class MinMaxScaler:
         if isinstance(data, pd.DataFrame):
             self.max_ = data.max(axis=0)
             self.min_ = data.min(axis=0)
-            self.scale_factor_ = (self.max_ - self.min_).where(self.max_ != self.min_, 1)
+            self.scale_factor_ = (self.max_ - self.min_).where(
+                self.max_ != self.min_, 1
+            )
         if isinstance(data, np.ndarray):
             self.max_ = data.max(axis=0)[None, ...]
             self.min_ = data.min(axis=0)[None, ...]
-            self.scale_factor_ = np.where(self.max_ != self.min_, self.max_ - self.min_, 1)
+            self.scale_factor_ = np.where(
+                self.max_ != self.min_, self.max_ - self.min_, 1
+            )
         if isinstance(data, pd.Series):
             self.max_ = data.max()
             self.min_ = data.min()
@@ -111,7 +115,9 @@ def seasonal_data(n_components, noise=0.001):
     t = np.linspace(0, 1, 1000)
     beta = np.random.normal(size=2 * n_components)
 
-    seasonality = X(t, 365.25 / len(t), n_components) @ beta + np.random.randn(len(t)) * noise
+    seasonality = (
+        X(t, 365.25 / len(t), n_components) @ beta + np.random.randn(len(t)) * noise
+    )
 
     return (
         pd.DataFrame(
@@ -122,9 +128,9 @@ def seasonal_data(n_components, noise=0.001):
 
 
 def get_group_definition(X, pool_cols, pool_type):
-    if pool_type == 'complete':
-        group = np.zeros(len(X), dtype='int')
-        group_mapping = {0: 'all'}
+    if pool_type == "complete":
+        group = np.zeros(len(X), dtype="int")
+        group_mapping = {0: "all"}
         n_groups = 1
     else:
         group = X[pool_cols].cat.codes.values

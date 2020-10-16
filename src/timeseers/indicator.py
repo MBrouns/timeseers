@@ -3,26 +3,33 @@ from timeseers.timeseries_model import TimeSeriesModel
 from timeseers.utils import add_subplot, get_group_definition
 import pymc3 as pm
 from scipy.stats import mode
-import theano.tensor as tt
 
 
 class Indicator(TimeSeriesModel):
-    def __init__(self, name: str = None, pool_cols=None, pool_type='complete'):
+    def __init__(self, name: str = None, pool_cols=None, pool_type="complete"):
         self.pool_cols = pool_cols
         self.pool_type = pool_type
-        self.name = name or f"Indicator(pool_cols='{self.pool_cols}', pool_type='{self.pool_type}')"
+        self.name = (
+            name
+            or f"Indicator(pool_cols='{self.pool_cols}', pool_type='{self.pool_type}')"
+        )
         super().__init__()
 
     def definition(self, model, X, scale_factor):
-        t = X["t"].values
-        group, n_groups, self.groups_ = get_group_definition(X, self.pool_cols, self.pool_type)
+        group, n_groups, self.groups_ = get_group_definition(
+            X, self.pool_cols, self.pool_type
+        )
 
         with model:
             if self.pool_type == "partial":
-                raise ValueError("Indicator() component doesn't support partial pooling")
+                raise ValueError(
+                    "Indicator() component doesn't support partial pooling"
+                )
 
-            _ind = pm.Beta(self._param_name('_ind'), alpha=0.5, beta=0.5, shape=n_groups)
-            ind = pm.Deterministic(self._param_name('ind'), _ind * 2 - 1)
+            _ind = pm.Beta(
+                self._param_name("_ind"), alpha=0.5, beta=0.5, shape=n_groups
+            )
+            ind = pm.Deterministic(self._param_name("ind"), _ind * 2 - 1)
 
         return ind[group]
 
