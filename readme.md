@@ -23,7 +23,7 @@ TimeSeers strongly encourages using uncertainty estimates, and will by default u
 from timeseers import LinearTrend, FourierSeasonality
 import pandas as pd
 
-model = LinearTrend() + FourierSeasonality(period=pd.TimeDelta(days=365)) + FourierSeasonality(period=pd.TimeDelta(days=365))
+model = LinearTrend() + FourierSeasonality(period=pd.Timedelta(days=365)) + FourierSeasonality(period=pd.Timedelta(days=365))
 model.fit(data[['t']], data['value'])
 ```
 
@@ -37,7 +37,7 @@ passengers = pd.read_csv('AirPassengers.csv').reset_index().assign(
     value=lambda d: d['#Passengers']
 )
 
-model = LinearTrend(n_changepoints=10) * FourierSeasonality(n=5, period=pd.TimeDelta(days=365))
+model = LinearTrend(n_changepoints=10) * FourierSeasonality(n=5, period=pd.Timedelta(days=365))
 model.fit(passengers[['t']], passengers['value'], tune=2000)
 
 model.plot_components(X_true=passengers, y_true=passengers['value']);
