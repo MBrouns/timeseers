@@ -47,6 +47,27 @@ class MinMaxScaler:
         return series * self.scale_factor_ + self.min_
 
 
+class MaxScaler:
+    def fit(self, data):
+        if isinstance(data, pd.DataFrame):
+            self.scale_factor_ = data.max(axis=0)
+        if isinstance(data, np.ndarray):
+            self.scale_factor_ = data.max(axis=0)[None, ...]
+        if isinstance(data, pd.Series):
+            self.scale_factor_ = data.max()
+        return self
+
+    def transform(self, series):
+        return series / self.scale_factor_
+
+    def fit_transform(self, series):
+        self.fit(series)
+        return self.transform(series)
+
+    def inv_transform(self, series):
+        return series * self.scale_factor_
+
+
 class StdScaler:
     def fit(self, data):
         if isinstance(data, pd.Series):
@@ -99,6 +120,34 @@ def trend_data(n_changepoints, location="spaced", noise=0.001):
 
     return (
         pd.DataFrame({"t": pd.date_range("2018-1-1", periods=len(t)), "value": trend}),
+        delta,
+    )
+
+
+def logistic_growth_data(n_changepoints, location="spaced", noise=0.001, loc=0, scale=0.2):
+    delta = np.random.laplace(size=n_changepoints, loc=loc, scale=scale)
+    gamma = np.zeros(n_changepoints)
+
+    t = np.linspace(0, 1, 1000)
+    if location == "random":
+        s = np.sort(np.random.choice(t, n_changepoints, replace=False))
+    elif location == "spaced":
+        s = np.linspace(0, np.max(t), n_changepoints + 2)[1:-1]
+    else:
+        raise ValueError('invalid `location`, should be "random" or "spaced"')
+
+    A = (t[:, None] > s) * 1
+    k, m = 2.5, 0
+
+    for i in range(n_changepoints):
+        left = (s[i] - m - np.sum(gamma[:i]))
+        right = (1 - (k + np.sum(delta[:i])) / (k + np.sum(delta[:i+1])))
+        gamma[i] = left * right
+
+    g = (k + np.sum(A * delta, axis=1)) * (t - (m + np.sum(A * gamma, axis=1)))
+    logistic_growth = 1 / (1 + np.exp(-g)) + np.random.randn(len(t)) * noise
+    return (
+        pd.DataFrame({"t": pd.date_range("2018-1-1", periods=len(t)), "value": logistic_growth}),
         delta,
     )
 

@@ -12,6 +12,14 @@ def trend_data(request):
 
 
 @pytest.fixture(params=[1, 5, 10])
+def logistic_growth_data(request):
+    np.random.seed(42)
+    n_changepoints = request.param
+    data, delta = utils.logistic_growth_data(n_changepoints, noise=0.0001)
+    return data, delta, n_changepoints
+
+
+@pytest.fixture(params=[1, 5, 10])
 def seasonal_data(request):
     np.random.seed(42)
     n_components = request.param
