@@ -98,6 +98,7 @@ class LogisticGrowth(TimeSeriesModel):
                 (self.s[i] - m - gamma[:i].sum(axis=0)) *
                 (1 - ((k + delta[:, :i].sum(axis=1)) / (k + delta[:, :i+1].sum(axis=1)))).T
             )
+
         g = (
             (k + A @ delta.T) *
             (t[:, None] - (m + A @ gamma))

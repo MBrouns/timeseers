@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pymc3 as pm
 from timeseers.timeseries_model import TimeSeriesModel
-from timeseers.utils import add_subplot, get_group_definition
+from timeseers.utils import add_subplot, get_group_definition, invert_dict
 
 
 class FourierSeasonality(TimeSeriesModel):
@@ -54,7 +54,16 @@ class FourierSeasonality(TimeSeriesModel):
 
         return seasonality
 
-    def _predict(self, trace, t, pool_group=0):
+    def _predict(self, trace, X):
+        t = X['t']
+        if self.pool_type == 'complete':
+            pool_group = np.zeros(len(X), dtype=np.int)
+        else:
+            pool_group = X[self.pool_cols].map(invert_dict(self.groups_))
+
+        return self._X_t(t, self.p_, self.n) @ trace[self._param_name("beta")][np.arange(len(X)), pool_group].T
+
+    def _plot_predict(self, trace, t, pool_group=0):
         return self._X_t(t, self.p_, self.n) @ trace[self._param_name("beta")][:, pool_group].T
 
     def plot(self, trace, scaled_t, y_scaler):
@@ -63,7 +72,7 @@ class FourierSeasonality(TimeSeriesModel):
 
         seasonality_return = np.empty((len(scaled_t), len(self.groups_)))
         for group_code, group_name in self.groups_.items():
-            scaled_s = self._predict(trace, scaled_t, group_code)
+            scaled_s = self._plot_predict(trace, scaled_t, group_code)
             s = y_scaler.inv_transform(scaled_s)
             ax.plot(list(range(self.period.days)), s.mean(axis=1)[:self.period.days], label=group_name)
 

@@ -29,6 +29,25 @@ class TimeSeriesModel(ABC):
             likelihood.observed(mu, y_scaled)
             self.trace_ = pm.sample(**sample_kwargs)
 
+    def predict(self, X, ci_percentiles=(0.08, 0.5, 0.92)):
+        X_to_scale = X.select_dtypes(exclude='category')
+        X_scaled = self._X_scaler_.transform(X_to_scale)
+        X_scaled = X_scaled.join(X.select_dtypes('category'))
+        y_hat_scaled = self._predict(self.trace_, X_scaled)
+
+        # TODO: We only take the uncertainty of the parameters here, still need to add the uncertainty
+        # from the likelihood as well
+
+        y_hat = self._y_scaler_.inv_transform(y_hat_scaled)
+        return pd.DataFrame(
+            np.percentile(
+                y_hat,
+                ci_percentiles,
+                axis=1
+            ).T,
+            columns=[f"perc_{p}" for p in ci_percentiles]
+        )
+
     def plot_components(self, X_true=None, y_true=None, groups=None, fig=None):
         import matplotlib.pyplot as plt
 
@@ -62,6 +81,10 @@ class TimeSeriesModel(ABC):
         pass
 
     @abstractmethod
+    def _predict(self, trace, X):
+        pass
+
+    @abstractmethod
     def definition(self, model, X_scaled, scale_factor):
         pass
 
@@ -89,6 +112,12 @@ class AdditiveTimeSeries(TimeSeriesModel):
             *args, **kwargs
         )
 
+    def _predict(self, trace, x_scaled):
+        return (
+            self.left._predict(trace, x_scaled) +
+            self.right._predict(trace, x_scaled)
+        )
+
     def plot(self, *args, **kwargs):
         left = self.left.plot(*args, **kwargs)
         right = self.right.plot(*args, **kwargs)
@@ -114,10 +143,16 @@ class MultiplicativeTimeSeries(TimeSeriesModel):
             1 + self.right.definition(*args, **kwargs)
         )
 
+    def _predict(self, trace, x_scaled):
+        return (
+            self.left._predict(trace, x_scaled) *
+            (1 + self.right._predict(trace, x_scaled))
+        )
+
     def plot(self, trace, scaled_t, y_scaler):
         left = self.left.plot(trace, scaled_t, y_scaler)
         right = self.right.plot(trace, scaled_t, y_scaler)
-        return left + (left * right)
+        return left * (1 + right)
 
     def __repr__(self):
         return (

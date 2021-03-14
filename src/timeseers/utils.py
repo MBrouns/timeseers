@@ -170,6 +170,10 @@ def seasonal_data(n_components, noise=0.001):
     )
 
 
+def invert_dict(dct):
+    return {v: k for k, v in dct.items()}
+
+
 def get_group_definition(X, pool_cols, pool_type):
     if pool_type == 'complete':
         group = np.zeros(len(X), dtype='int')

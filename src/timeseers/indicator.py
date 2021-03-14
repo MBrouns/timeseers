@@ -1,6 +1,6 @@
 import numpy as np
 from timeseers.timeseries_model import TimeSeriesModel
-from timeseers.utils import add_subplot, get_group_definition
+from timeseers.utils import add_subplot, get_group_definition, invert_dict
 import pymc3 as pm
 from scipy.stats import mode
 
@@ -24,6 +24,16 @@ class Indicator(TimeSeriesModel):
 
         return ind[group]
 
+    def _predict(self, trace, X):
+        t = X['t']
+        if self.pool_type == 'complete':
+            pool_group = np.zeros(len(X), dtype=np.int)
+        else:
+            pool_group = X[self.pool_cols].map(invert_dict(self.groups_))
+        ind = trace[self._param_name("ind")][np.arange(len(t)), pool_group]
+
+        return np.ones_like(t)[:, None] * ind.reshape(1, -1)
+
     def _predict(self, trace, t, pool_group=0):
         ind = trace[self._param_name("ind")][:, pool_group]
 
@@ -35,7 +45,7 @@ class Indicator(TimeSeriesModel):
         ax.set_xticks([])
         trend_return = np.empty((len(scaled_t), len(self.groups_)))
         for group_code, group_name in self.groups_.items():
-            y_hat = mode(self._predict(trace, scaled_t, group_code), axis=1)[0][:, 0]
+            y_hat = mode(self._plot_predict(trace, scaled_t, group_code), axis=1)[0][:, 0]
             ax.plot(scaled_t, y_hat, label=group_name)
             trend_return[:, group_code] = y_hat
         ax.set_ylim([-1.05, 1.05])

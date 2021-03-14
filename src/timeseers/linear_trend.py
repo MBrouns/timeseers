@@ -1,6 +1,6 @@
 import numpy as np
 from timeseers.timeseries_model import TimeSeriesModel
-from timeseers.utils import add_subplot, get_group_definition
+from timeseers.utils import add_subplot, get_group_definition, invert_dict
 import pymc3 as pm
 
 
@@ -50,7 +50,22 @@ class LinearTrend(TimeSeriesModel):
             )
         return g
 
-    def _predict(self, trace, t, pool_group=0):
+    def _predict(self, trace, X):
+        t = X['t']
+        A = (t[:, None] > self.s) * 1
+        if self.pool_type == 'complete':
+            pool_group = np.zeros(len(X), dtype=np.int)
+        else:
+            pool_group = X[self.pool_cols].map(invert_dict(self.groups_))
+
+        idx = np.arange(len(X))
+        k, m = trace[self._param_name("k")][idx, pool_group], trace[self._param_name("m")][idx, pool_group]
+        growth = k + A @ trace[self._param_name("delta")][idx, pool_group].T
+        gamma = -self.s[:, None] * trace[self._param_name("delta")][idx, pool_group].T
+        offset = m + A @ gamma
+        return growth * t[:, None] + offset
+
+    def _plot_predict(self, trace, t, pool_group=0):
         A = (t[:, None] > self.s) * 1
 
         k, m = trace[self._param_name("k")][:, pool_group], trace[self._param_name("m")][:, pool_group]
@@ -65,7 +80,7 @@ class LinearTrend(TimeSeriesModel):
         ax.set_xticks([])
         trend_return = np.empty((len(scaled_t), len(self.groups_)))
         for group_code, group_name in self.groups_.items():
-            scaled_trend = self._predict(trace, scaled_t, group_code)
+            scaled_trend = self._plot_predict(trace, scaled_t, group_code)
             trend = y_scaler.inv_transform(scaled_trend)
             ax.plot(scaled_t, trend.mean(axis=1), label=group_name)
             trend_return[:, group_code] = scaled_trend.mean(axis=1)
