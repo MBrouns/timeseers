@@ -34,7 +34,7 @@ class Indicator(TimeSeriesModel):
 
         return np.ones_like(t)[:, None] * ind.reshape(1, -1)
 
-    def _predict(self, trace, t, pool_group=0):
+    def _plot_predict(self, trace, t, pool_group=0):
         ind = trace[self._param_name("ind")][:, pool_group]
 
         return np.ones_like(t)[:, None] * ind.reshape(1, -1)
