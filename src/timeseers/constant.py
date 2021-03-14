@@ -2,8 +2,6 @@ import numpy as np
 from timeseers.timeseries_model import TimeSeriesModel
 from timeseers.utils import add_subplot, get_group_definition
 import pymc3 as pm
-from scipy.stats import mode
-import theano.tensor as tt
 
 
 class Constant(TimeSeriesModel):
@@ -12,7 +10,8 @@ class Constant(TimeSeriesModel):
         self.pool_type = pool_type
         self.lower = lower
         self.upper = upper
-        self.name = name or f"Constant(lower={self.lower}, upper={self.upper}, pool_cols='{self.pool_cols}', pool_type='{self.pool_type}')"
+        self.name = name or f"Constant(lower={self.lower}, upper={self.upper}, " \
+                            f"pool_cols='{self.pool_cols}', pool_type='{self.pool_type}')"
         super().__init__()
 
     def definition(self, model, X, scale_factor):
