@@ -3,7 +3,6 @@ from timeseers.timeseries_model import TimeSeriesModel
 from timeseers.utils import add_subplot, get_group_definition
 import pymc3 as pm
 from scipy.stats import mode
-import theano.tensor as tt
 
 
 class Indicator(TimeSeriesModel):
@@ -14,7 +13,6 @@ class Indicator(TimeSeriesModel):
         super().__init__()
 
     def definition(self, model, X, scale_factor):
-        t = X["t"].values
         group, n_groups, self.groups_ = get_group_definition(X, self.pool_cols, self.pool_type)
 
         with model:
