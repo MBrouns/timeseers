@@ -1,6 +1,6 @@
 import numpy as np
 from timeseers.timeseries_model import TimeSeriesModel
-from timeseers.utils import add_subplot, get_group_definition
+from timeseers.utils import add_subplot, get_group_definition, invert_dict
 import pymc3 as pm
 
 
@@ -28,7 +28,17 @@ class Constant(TimeSeriesModel):
 
         return c[group]
 
-    def _predict(self, trace, t, pool_group=0):
+    def _predict(self, trace, X):
+        t = X['t']
+        if self.pool_type == 'complete':
+            pool_group = np.zeros(len(X), dtype=np.int)
+        else:
+            pool_group = X[self.pool_cols].map(invert_dict(self.groups_))
+        ind = trace[self._param_name("c")][np.arange(len(X)), pool_group]
+
+        return np.ones_like(t)[:, None] * ind.reshape(1, -1)
+
+    def _plot_predict(self, trace, t, pool_group=0):
         ind = trace[self._param_name("c")][:, pool_group]
 
         return np.ones_like(t)[:, None] * ind.reshape(1, -1)
@@ -39,7 +49,7 @@ class Constant(TimeSeriesModel):
         trend_return = np.empty((len(scaled_t), len(self.groups_)))
         plot_data = []
         for group_code, group_name in self.groups_.items():
-            y_hat = np.mean(self._predict(trace, scaled_t, group_code), axis=1)
+            y_hat = np.mean(self._plot_predict(trace, scaled_t, group_code), axis=1)
             trend_return[:, group_code] = y_hat
             plot_data.append((group_name, y_hat[0]))
         ax.bar(*zip(*plot_data))

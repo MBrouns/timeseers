@@ -2,7 +2,7 @@ import numpy as np
 import theano.tensor as T
 import theano
 from timeseers.timeseries_model import TimeSeriesModel
-from timeseers.utils import add_subplot, get_group_definition
+from timeseers.utils import add_subplot, get_group_definition, invert_dict
 import pymc3 as pm
 
 
@@ -85,8 +85,34 @@ class LogisticGrowth(TimeSeriesModel):
             growth = self.cap_scaled / (1 + pm.math.exp(-growth))
         return growth
 
-    def _predict(self, trace, t, pool_group=0):
+    def _predict(self, trace, X):
+        t = X['t']
+        A = (t[:, None] > self.s) * 1
+        if self.pool_type == 'complete':
+            pool_group = np.zeros(len(X), dtype=np.int)
+        else:
+            pool_group = X[self.pool_cols].map(invert_dict(self.groups_))
 
+        idx = np.arange(len(t))
+        delta = trace[self._param_name("delta")][idx, pool_group]
+        k = trace[self._param_name("k")][idx, pool_group]
+        m = trace[self._param_name("m")][idx, pool_group]
+        A = (t[:, None] > self.s) * 1
+
+        gamma = np.zeros(delta.T.shape)
+        for i in range(gamma.shape[0]):
+            gamma[i] = (
+                    (self.s[i] - m - gamma[:i].sum(axis=0)) *
+                    (1 - ((k + delta[:, :i].sum(axis=1)) / (k + delta[:, :i + 1].sum(axis=1)))).T
+            )
+
+        g = (
+                (k + A @ delta.T) *
+                (t[:, None] - (m + A @ gamma))
+        )
+        return self.cap_scaled / (1 + np.exp(-g))
+
+    def _plot_predict(self, trace, t, pool_group=0):
         delta = trace[self._param_name("delta")][:, pool_group]
         k = trace[self._param_name("k")][:, pool_group]
         m = trace[self._param_name("m")][:, pool_group]
@@ -98,6 +124,7 @@ class LogisticGrowth(TimeSeriesModel):
                 (self.s[i] - m - gamma[:i].sum(axis=0)) *
                 (1 - ((k + delta[:, :i].sum(axis=1)) / (k + delta[:, :i+1].sum(axis=1)))).T
             )
+
         g = (
             (k + A @ delta.T) *
             (t[:, None] - (m + A @ gamma))
@@ -110,7 +137,7 @@ class LogisticGrowth(TimeSeriesModel):
         ax.set_xticks([])
         growth_return = np.empty((len(scaled_t), len(self.groups_)))
         for group_code, group_name in self.groups_.items():
-            scaled_growth = self._predict(trace, scaled_t, group_code)
+            scaled_growth = self._plot_predict(trace, scaled_t, group_code)
             growth = y_scaler.inv_transform(scaled_growth)
             ax.plot(scaled_t, growth.mean(axis=1), label=group_name)
             growth_return[:, group_code] = scaled_growth.mean(axis=1)

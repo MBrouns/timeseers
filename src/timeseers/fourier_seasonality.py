@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pymc3 as pm
 from timeseers.timeseries_model import TimeSeriesModel
-from timeseers.utils import add_subplot, get_group_definition
+from timeseers.utils import add_subplot, get_group_definition, invert_dict
 
 
 class FourierSeasonality(TimeSeriesModel):
@@ -54,22 +54,32 @@ class FourierSeasonality(TimeSeriesModel):
 
         return seasonality
 
-    def _predict(self, trace, t, pool_group=0):
-        return self._X_t(t, self.p_, self.n) @ trace[self._param_name("beta")][:, pool_group].T
+    def _predict(self, trace, X):
+        t = X['t']
+        if self.pool_type == 'complete':
+            pool_group = np.zeros(len(X), dtype=np.int)
+        else:
+            pool_group = X[self.pool_cols].map(invert_dict(self.groups_))
+        l = self._X_t(t, self.p_, self.n)[..., None]
+        r = trace[self._param_name("beta")][:, pool_group].transpose(1, 2, 0)
 
-    def plot(self, trace, scaled_t, y_scaler):
+        return (l * r).sum(axis=1)
+
+    def plot(self, trace, X, y_scaler):
         ax = add_subplot()
         ax.set_title(str(self))
 
-        seasonality_return = np.empty((len(scaled_t), len(self.groups_)))
+        scaled_s = self._predict(trace, X)
+        s = y_scaler.inv_transform(scaled_s)
         for group_code, group_name in self.groups_.items():
-            scaled_s = self._predict(trace, scaled_t, group_code)
-            s = y_scaler.inv_transform(scaled_s)
-            ax.plot(list(range(self.period.days)), s.mean(axis=1)[:self.period.days], label=group_name)
+            mask = X[self.pool_cols] == group_name if self.pool_cols is not None else np.full(len(s), True)
+            ax.plot(
+                list(range(self.period.days)),
+                s[mask].mean(axis=1)[:self.period.days],
+                label=group_name
+            )
 
-            seasonality_return[:, group_code] = scaled_s.mean(axis=1)
-
-        return seasonality_return
+        return scaled_s
 
     def __repr__(self):
         return f"FourierSeasonality(n={self.n}, " \
