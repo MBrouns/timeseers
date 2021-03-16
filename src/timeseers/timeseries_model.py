@@ -1,6 +1,6 @@
 import pandas as pd
 import pymc3 as pm
-from timeseers.utils import MinMaxScaler, StdScaler, add_subplot
+from timeseers.utils import MinMaxScaler, StdScaler, add_subplot, cartesian_product
 from timeseers.likelihood import Gaussian
 import numpy as np
 from abc import ABC, abstractmethod
@@ -60,7 +60,12 @@ class TimeSeriesModel(ABC):
         t = pd.date_range(t_min, t_max, freq='D')
 
         scaled_t = np.linspace(0, 1 + lookahead_scale, len(t))
-        total = self.plot(self.trace_, scaled_t, self._y_scaler_)
+        X = pd.DataFrame({'t': scaled_t})
+
+        for col, val in self._groups().items():
+            X = cartesian_product(X, pd.DataFrame({col: list(val.values())}))
+
+        total = self.plot(self.trace_, X, self._y_scaler_)
 
         ax = add_subplot()
         ax.set_title("overall")
@@ -91,6 +96,11 @@ class TimeSeriesModel(ABC):
     def _param_name(self, param):
         return f"{self.name}-{param}"
 
+    def _groups(self):
+        if self.pool_type == "complete":
+            return {}
+        return {self.pool_cols: self.groups_}
+
     def __add__(self, other):
         return AdditiveTimeSeries(self, other)
 
@@ -105,6 +115,7 @@ class AdditiveTimeSeries(TimeSeriesModel):
     def __init__(self, left, right):
         self.left = left
         self.right = right
+        self.name = "AdditiveTimeSeries"
         super().__init__()
 
     def definition(self, *args, **kwargs):
@@ -119,11 +130,14 @@ class AdditiveTimeSeries(TimeSeriesModel):
             self.right._predict(trace, x_scaled)
         )
 
-    def plot(self, *args, **kwargs):
+    def plot(self, trace, X, y_scaler):
         return (
-            self.left.plot(*args, **kwargs) +
-            self.right.plot(*args, **kwargs)
+                self.left.plot(trace, X, y_scaler) +
+                self.right.plot(trace, X, y_scaler)
         )
+
+    def _groups(self):
+        return {**self.left._groups(), ** self.right._groups()}
 
     def __repr__(self):
         return (
@@ -138,6 +152,7 @@ class MultiplicativeTimeSeries(TimeSeriesModel):
     def __init__(self, left, right):
         self.left = left
         self.right = right
+        self.name = "MultiplicativeTimeSeries"
         super().__init__()
 
     def definition(self, *args, **kwargs):
@@ -152,11 +167,14 @@ class MultiplicativeTimeSeries(TimeSeriesModel):
             (1 + self.right._predict(trace, x_scaled))
         )
 
-    def plot(self, trace, scaled_t, y_scaler):
+    def plot(self, trace, X, y_scaler):
         return (
-            self.left.plot(trace, scaled_t, y_scaler) *
-            (1 + self.right.plot(trace, scaled_t, y_scaler))
+            self.left.plot(trace, X, y_scaler) *
+            (1 + self.right.plot(trace, X, y_scaler))
         )
+
+    def _groups(self):
+        return {**self.left._groups(), ** self.right._groups()}
 
     def __repr__(self):
         return (

@@ -184,3 +184,7 @@ def get_group_definition(X, pool_cols, pool_type):
         group_mapping = dict(enumerate(X[pool_cols].cat.categories))
         n_groups = X[pool_cols].nunique()
     return group, n_groups, group_mapping
+
+
+def cartesian_product(df1, df2):
+    return df1.assign(merge_key=1).merge(df2.assign(merge_key=1), on="merge_key").drop(columns="merge_key")
