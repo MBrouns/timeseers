@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 
 
 class TimeSeriesModel(ABC):
-    def fit(self, X, y, X_scaler=MinMaxScaler, y_scaler=StdScaler, likelihood=None, **sample_kwargs):
+    def fit(self, X, y, sample_weight=None, X_scaler=MinMaxScaler, y_scaler=StdScaler, likelihood=None, **sample_kwargs):
         if not X.index.is_monotonic_increasing:
             raise ValueError('index of X is not monotonically increasing. You might want to call `.reset_index()`')
 
@@ -26,7 +26,7 @@ class TimeSeriesModel(ABC):
         if likelihood is None:
             likelihood = Gaussian()
         with model:
-            likelihood.observed(mu, y_scaled)
+            likelihood.observed(mu, y_scaled, sample_weight=sample_weight)
             self.trace_ = pm.sample(**sample_kwargs)
 
     def plot_components(self, X_true=None, y_true=None, groups=None, fig=None):
