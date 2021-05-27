@@ -26,7 +26,7 @@ class TimeSeriesModel(ABC):
         if likelihood is None:
             likelihood = Gaussian()
         with model:
-            likelihood.observed(mu, y_scaled, sample_weight=sample_weight)
+            likelihood.observed(mu, y_scaled.values, sample_weight=sample_weight)
             self.trace_ = pm.sample(**sample_kwargs)
 
     def plot_components(self, X_true=None, y_true=None, groups=None, fig=None):
