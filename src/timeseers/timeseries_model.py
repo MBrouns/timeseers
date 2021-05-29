@@ -6,7 +6,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 def _check_sample_weight(sample_weight, X):
-    if sample_weight is None:
+    if sample_weight is None or (min(sample_weight) == max(sample_weight)):
         return None
 
     n_samples = len(X)
