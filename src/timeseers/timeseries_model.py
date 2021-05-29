@@ -6,7 +6,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 def _check_sample_weight(sample_weight, X):
-    if sample_weight is None or (min(sample_weight) == max(sample_weight)):
+    if min(sample_weight) == max(sample_weight):
         return None
 
     n_samples = len(X)
@@ -30,7 +30,8 @@ class TimeSeriesModel(ABC):
         if not X.index.is_monotonic_increasing:
             raise ValueError('index of X is not monotonically increasing. You might want to call `.reset_index()`')
 
-        sample_weight = _check_sample_weight(sample_weight, X)
+        if sample_weight is not None:
+            sample_weight = _check_sample_weight(sample_weight, X)
 
         X_to_scale = X.select_dtypes(exclude='category')
         self._X_scaler_ = X_scaler()
