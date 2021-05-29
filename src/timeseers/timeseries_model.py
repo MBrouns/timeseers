@@ -5,11 +5,32 @@ from timeseers.likelihood import Gaussian
 import numpy as np
 from abc import ABC, abstractmethod
 
+def _check_sample_weight(sample_weight, X):
+    if sample_weight is None:
+        return None
+
+    n_samples = len(X)
+
+    if isinstance(sample_weight, pd.Series):
+        sample_weight = sample_weight.values
+    elif isinstance(sample_weight, list):
+        sample_weight = np.array(sample_weight)
+    elif not isinstance(sample_weight, np.ndarray):
+        raise ValueError("sample_weight must array like")
+
+    if sample_weight.shape != (n_samples, ):
+        raise ValueError("sample_weight.shape == {}, expected {}!"
+                             .format(sample_weight.shape, (n_samples,)))
+
+    return sample_weight
+
 
 class TimeSeriesModel(ABC):
     def fit(self, X, y, sample_weight=None, X_scaler=MinMaxScaler, y_scaler=StdScaler, likelihood=None, **sample_kwargs):
         if not X.index.is_monotonic_increasing:
             raise ValueError('index of X is not monotonically increasing. You might want to call `.reset_index()`')
+
+        sample_weight = _check_sample_weight(sample_weight, X)
 
         X_to_scale = X.select_dtypes(exclude='category')
         self._X_scaler_ = X_scaler()
@@ -23,6 +44,7 @@ class TimeSeriesModel(ABC):
         mu = self.definition(
             model, X_scaled, self._X_scaler_.scale_factor_
         )
+
         if likelihood is None:
             likelihood = Gaussian()
         with model:
