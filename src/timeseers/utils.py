@@ -96,6 +96,26 @@ def add_subplot(height=5):
     fig.set_size_inches(w, h + height)
     return fig.add_subplot(len(fig.axes) + 1, 1, len(fig.axes) + 1)
 
+def weighted_data(sigmas=[1, 2], weights=[1, 2]):
+    t = np.linspace(0, 1, 1000)
+
+    constant = np.concatenate(
+        [
+            np.random.randn(500) * sigmas[0],
+            np.random.randn(500) * sigmas[1]
+        ],
+        axis=None
+    )
+    sample_weight = np.concatenate(
+        [
+            np.repeat(weights[0], 500),
+            np.repeat(weights[1], 500)
+        ],
+        axis=None
+    )
+
+    return pd.DataFrame({"t": pd.date_range("2018-1-1", periods=len(t)), "value": constant, "weight": sample_weight})
+
 
 def trend_data(n_changepoints, location="spaced", noise=0.001):
     delta = np.random.laplace(size=n_changepoints)
