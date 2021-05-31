@@ -3,7 +3,7 @@ import pymc3 as pm
 
 
 class Likelihood(ABC):
-    """Subclasses should implement the observed method which defines an observed random variable"""
+    """Subclasses should implement the _likelihood_priors method which defines the prior parameters of an observed random variable"""
     @property
     def distribution(self):
         raise NotImplementedError
