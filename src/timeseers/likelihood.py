@@ -9,7 +9,7 @@ class Likelihood(ABC):
         raise NotImplementedError
 
     def observed(self, mu, y_scaled, sample_weight):
-        model_parameters = self.define_priors()
+        model_parameters = self._likelihood_priors()
 
         model_parameters["mu"] = mu
 
@@ -19,7 +19,10 @@ class Likelihood(ABC):
             pm.Potential("obs", sample_weight * self.distribution.dist(**model_parameters).logp(y_scaled))
 
     @abstractmethod
-    def define_priors(self):
+    def _likelihood_priors(self):
+        """
+        Dictionary of priors for the observation likelihood. Excludes `mu`
+        """
         pass
 
 
@@ -30,7 +33,7 @@ class Gaussian(Likelihood):
     def __init__(self, sigma=0.5):
         self.sigma = sigma
 
-    def define_priors(self):
+    def _likelihood_priors(self):
         return {
             "sigma": pm.HalfCauchy("sigma", self.sigma)
         }
@@ -45,7 +48,7 @@ class StudentT(Likelihood):
         self.beta = beta
         self.sigma = sigma
 
-    def define_priors(self):
+    def _likelihood_priors(self):
         return {
             "nu": pm.InverseGamma("nu", alpha=self.alpha, beta=self.beta),
             "sigma": pm.HalfCauchy("sigma", self.sigma)
