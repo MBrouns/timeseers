@@ -38,9 +38,9 @@ class RBFSeasonality(TimeSeriesModel):
     @staticmethod
     def _X_t(t, peaks, sigma, year):
         mod = (t % year)[:, None]
-        left_difference = np.sqrt( (mod - peaks[None, :]) **2 )
+        left_difference = np.sqrt((mod - peaks[None, :]) **2)
         right_difference = np.abs(year - left_difference)
-        return  np.exp(- ((np.minimum(left_difference, right_difference)) ** 2) / (2 * sigma**2))
+        return  np.exp(-((np.minimum(left_difference, right_difference)) ** 2) / (2 * sigma**2))
 
     def definition(self, model, X, scale_factor):
         t = X["t"].values
