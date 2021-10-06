@@ -5,18 +5,32 @@ from timeseers.timeseries_model import TimeSeriesModel
 from timeseers.utils import add_subplot, get_group_definition
 
 
+
+def get_periodic_peaks(
+        n: int = 20,
+        period: pd.Timedelta = pd.Timedelta(days=365.25)):
+    """Returns n periodic peaks that repeats each period"""
+    return np.array([period * i / n for i in range(n)])
+
+
 class RBFSeasonality(TimeSeriesModel):
+    """
+    Seasonality with radial basis functions. Periodic radial basis functions
+    are placed to model seasonality. With ``peaks`` argument, RBF's can be placed
+    arbitrarily. If peaks is not provided, 20 evenly placed RBF's are used with
+    a period of 365.25 days.
+    """
     def __init__(
         self,
-        peaks,
         name: str = None,
+        peaks: np.ndarray = None,
         period: pd.Timedelta = pd.Timedelta(days=365.25),
         shrinkage_strength=100,
         pool_cols=None,
-        sigma=0.2,
+        sigma=0.1,
         pool_type='complete'
     ):
-        self.peaks = peaks
+        self.peaks = peaks or get_periodic_peaks(period=period)
         self.period = period
         self.shrinkage_strength = shrinkage_strength
         self.sigma = sigma
@@ -27,10 +41,9 @@ class RBFSeasonality(TimeSeriesModel):
 
 
     @staticmethod
-    def _X_t(t, periods, p, sigma, year):
-        year = year / p
+    def _X_t(t, peaks, sigma, year):
         mod = (t % year)[:, None]
-        left_difference = np.sqrt( (mod - periods[None, :]) **2 )
+        left_difference = np.sqrt( (mod - peaks[None, :]) **2 )
         right_difference = np.abs(year - left_difference)
         return  np.exp(- ((np.minimum(left_difference, right_difference)) ** 2) / (2 * sigma**2))
 
@@ -52,12 +65,12 @@ class RBFSeasonality(TimeSeriesModel):
             else:
                 beta = pm.Normal(self._param_name("beta"), 0, 1, shape=(n_groups, n_params))
 
-            seasonality = pm.math.sum(self._X_t(t, self.peaks_, self.factor_, self.sigma, self.period) * beta[group], axis=1)
+            seasonality = pm.math.sum(self._X_t(t, self.peaks_, self.sigma, self.p_) * beta[group], axis=1)
 
         return seasonality
 
     def _predict(self, trace, t, pool_group=0):
-        return self._X_t(t, self.peaks_, self.factor_, self.sigma, self.period) @ trace[self._param_name("beta")][:, pool_group].T
+        return self._X_t(t, self.peaks_, self.sigma, self.p_) @ trace[self._param_name("beta")][:, pool_group].T
 
     def plot(self, trace, scaled_t, y_scaler):
         ax = add_subplot()
