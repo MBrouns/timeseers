@@ -170,6 +170,29 @@ def seasonal_data(n_components, noise=0.001):
     )
 
 
+def rbf_seasonal_data(n_components, sigma=0.015, noise=0.001):
+    def X(t, peaks, sigma, year):
+        mod = (t % year)[:, None]
+        left_difference = np.sqrt( (mod - peaks[None, :]) **2 )
+        right_difference = np.abs(year - left_difference)
+        return  np.exp(- ((np.minimum(left_difference, right_difference)) ** 2) / (2 * sigma**2))
+    t = pd.Series(pd.date_range("2010-01-01", "2014-01-01"))
+    scaler = MinMaxScaler()
+    scaled_t = scaler.fit_transform(t)
+    scale_factor = t.max() - t.min()
+    beta = np.random.normal(size=n_components)
+    peaks = get_periodic_peaks(n_components)
+    peaks = np.array([p / scale_factor for p in peaks])
+    seasonality = X(scaled_t, peaks, sigma, pd.Timedelta(days=365.25) / scale_factor) @ beta + np.random.randn(len(t)) * noise
+    seasonality_scaled = MinMaxScaler().fit_transform(seasonality)
+    return (
+        pd.DataFrame(
+            {"t": pd.date_range("2018-1-1", periods=len(t)), "value": seasonality}
+        ),
+        beta,
+    )
+
+
 def get_group_definition(X, pool_cols, pool_type):
     if pool_type == 'complete':
         group = np.zeros(len(X), dtype='int')
@@ -180,3 +203,13 @@ def get_group_definition(X, pool_cols, pool_type):
         group_mapping = dict(enumerate(X[pool_cols].cat.categories))
         n_groups = X[pool_cols].nunique()
     return group, n_groups, group_mapping
+
+
+def get_periodic_peaks(
+        n: int = 20,
+        period: pd.Timedelta = pd.Timedelta(days=365.25)):
+    """
+    Returns n periodic peaks that repeats each period. Return value
+    can be used in RBFSeasonality.
+    """
+    return np.array([period * i / n for i in range(n)])

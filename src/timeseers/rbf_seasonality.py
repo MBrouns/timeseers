@@ -2,15 +2,7 @@ import numpy as np
 import pandas as pd
 import pymc3 as pm
 from timeseers.timeseries_model import TimeSeriesModel
-from timeseers.utils import add_subplot, get_group_definition
-
-
-
-def get_periodic_peaks(
-        n: int = 20,
-        period: pd.Timedelta = pd.Timedelta(days=365.25)):
-    """Returns n periodic peaks that repeats each period"""
-    return np.array([period * i / n for i in range(n)])
+from timeseers.utils import add_subplot, get_group_definition, get_periodic_peaks
 
 
 class RBFSeasonality(TimeSeriesModel):
@@ -30,7 +22,10 @@ class RBFSeasonality(TimeSeriesModel):
         sigma=0.1,
         pool_type='complete'
     ):
-        self.peaks = peaks or get_periodic_peaks(period=period)
+        if peaks is None:
+            self.peaks = get_periodic_peaks(period=period)
+        else:
+            self.peaks = peaks
         self.period = period
         self.shrinkage_strength = shrinkage_strength
         self.sigma = sigma
