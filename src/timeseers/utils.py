@@ -173,9 +173,10 @@ def seasonal_data(n_components, noise=0.001):
 def rbf_seasonal_data(n_components, sigma=0.015, noise=0.001):
     def X(t, peaks, sigma, year):
         mod = (t % year)[:, None]
-        left_difference = np.sqrt( (mod - peaks[None, :]) **2 )
+        left_difference = np.sqrt((mod - peaks[None, :]) ** 2)
         right_difference = np.abs(year - left_difference)
-        return  np.exp(- ((np.minimum(left_difference, right_difference)) ** 2) / (2 * sigma**2))
+        return np.exp(- ((np.minimum(left_difference, right_difference)) ** 2) / (2 * sigma**2))
+
     t = pd.Series(pd.date_range("2010-01-01", "2014-01-01"))
     scaler = MinMaxScaler()
     scaled_t = scaler.fit_transform(t)
@@ -183,8 +184,8 @@ def rbf_seasonal_data(n_components, sigma=0.015, noise=0.001):
     beta = np.random.normal(size=n_components)
     peaks = get_periodic_peaks(n_components)
     peaks = np.array([p / scale_factor for p in peaks])
-    seasonality = X(scaled_t, peaks, sigma, pd.Timedelta(days=365.25) / scale_factor) @ beta + np.random.randn(len(t)) * noise
-    seasonality_scaled = MinMaxScaler().fit_transform(seasonality)
+    period = pd.Timedelta(days=365.25)
+    seasonality = X(scaled_t, peaks, sigma, period / scale_factor) @ beta + np.random.randn(len(t)) * noise
     return (
         pd.DataFrame(
             {"t": pd.date_range("2018-1-1", periods=len(t)), "value": seasonality}

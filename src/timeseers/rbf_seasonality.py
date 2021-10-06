@@ -34,13 +34,12 @@ class RBFSeasonality(TimeSeriesModel):
         self.name = name or f"RBFSeasonality(period={self.period})"
         super().__init__()
 
-
     @staticmethod
     def _X_t(t, peaks, sigma, year):
         mod = (t % year)[:, None]
-        left_difference = np.sqrt((mod - peaks[None, :]) **2)
+        left_difference = np.sqrt((mod - peaks[None, :]) ** 2)
         right_difference = np.abs(year - left_difference)
-        return  np.exp(-((np.minimum(left_difference, right_difference)) ** 2) / (2 * sigma**2))
+        return np.exp(-((np.minimum(left_difference, right_difference)) ** 2) / (2 * sigma**2))
 
     def definition(self, model, X, scale_factor):
         t = X["t"].values
@@ -52,9 +51,10 @@ class RBFSeasonality(TimeSeriesModel):
         with model:
             if self.pool_type == 'partial':
 
-                mu_beta = pm.Normal(self._param_name("mu_beta"), mu=0, sigma=1, shape=n_params)  # TODO: add as parameters
+                mu_beta = pm.Normal(self._param_name("mu_beta"), mu=0, sigma=1, shape=n_params)
                 sigma_beta = pm.HalfNormal(self._param_name("sigma_beta"), 0.1, shape=n_params)
-                offset_beta = pm.Normal(self._param_name("offset_beta"), 0, 1 / self.shrinkage_strength, shape=(n_groups, n_params))
+                offset_beta = pm.Normal(
+                    self._param_name("offset_beta"), 0, 1 / self.shrinkage_strength, shape=(n_groups, n_params))
 
                 beta = pm.Deterministic(self._param_name("beta"), mu_beta + offset_beta * sigma_beta)
             else:
