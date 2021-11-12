@@ -9,7 +9,7 @@ class RBFSeasonality(TimeSeriesModel):
     """
     Seasonality with radial basis functions. Periodic radial basis functions
     are placed to model seasonality. With ``peaks`` argument, RBF's can be placed
-    arbitrarily. If peaks is not provided, 20 evenly placed RBF's are used with
+    arbitrarily. If peaks is not provided, 20 evenly placed RBF's are used 
     evenly spread out over `period` days
     """
     def __init__(
