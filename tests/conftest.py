@@ -25,3 +25,11 @@ def seasonal_data(request):
     n_components = request.param
     data, beta = utils.seasonal_data(n_components, noise=0.0000000001)
     return data, beta, n_components
+
+
+@pytest.fixture(params=[1, 5, 10])
+def rbf_seasonal_data(request):
+    np.random.seed(42)
+    n_components = request.param
+    data, beta = utils.rbf_seasonal_data(n_components, noise=0.0000000001)
+    return data, beta, n_components
