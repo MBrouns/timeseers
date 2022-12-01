@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 import pandas as pd
 
 
@@ -89,12 +90,20 @@ class StdScaler:
 
 def add_subplot(height=5):
     fig = plt.gcf()
-    n = len(fig.axes)
-    for i in range(n):
-        fig.axes[i].change_geometry(n + 1, 1, i + 1)
+    row = len(fig.axes) + 1
+    gs = gridspec.GridSpec(row, 1)
+
+    # Reposition existing subplots
+    for i, ax in enumerate(fig.axes):
+        ax.set_position(gs[i].get_position(fig))
+        ax.set_subplotspec(gs[i])
+
     w, h = fig.get_size_inches()
     fig.set_size_inches(w, h + height)
-    return fig.add_subplot(len(fig.axes) + 1, 1, len(fig.axes) + 1)
+
+    # Add new subplot
+    new_ax = fig.add_subplot(gs[row-1])
+    return new_ax
 
 
 def trend_data(n_changepoints, location="spaced", noise=0.001):

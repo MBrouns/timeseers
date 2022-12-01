@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-import pymc3 as pm
+import pymc as pm
 
 
 class Likelihood(ABC):
@@ -16,7 +16,7 @@ class Gaussian(Likelihood):
 
     def observed(self, mu, y_scaled):
         sigma = pm.HalfCauchy("sigma", self.sigma)
-        pm.Normal("obs", mu=mu, sd=sigma, observed=y_scaled)
+        pm.Normal("obs", mu, sigma, observed=y_scaled)
 
 
 class StudentT(Likelihood):
@@ -29,4 +29,4 @@ class StudentT(Likelihood):
     def observed(self, mu, y_scaled):
         nu = pm.InverseGamma("nu", alpha=self.alpha, beta=self.beta)
         sigma = pm.HalfCauchy("sigma", self.sigma)
-        pm.StudentT("obs", mu=mu, sd=sigma, nu=nu, observed=y_scaled)
+        pm.StudentT("obs", mu, sigma, nu=nu, observed=y_scaled)

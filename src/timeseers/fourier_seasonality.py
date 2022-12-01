@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import pymc3 as pm
+import pymc as pm
 from timeseers.timeseries_model import TimeSeriesModel
 from timeseers.utils import add_subplot, get_group_definition
 
@@ -65,7 +65,7 @@ class FourierSeasonality(TimeSeriesModel):
         for group_code, group_name in self.groups_.items():
             scaled_s = self._predict(trace, scaled_t, group_code)
             s = y_scaler.inv_transform(scaled_s)
-            ax.plot(list(range(self.period.days)), s.mean(axis=1)[:self.period.days], label=group_name)
+            ax.plot(scaled_t, s.mean(axis=1)[:len(scaled_t)], label=group_name, marker='x')
 
             seasonality_return[:, group_code] = scaled_s.mean(axis=1)
 

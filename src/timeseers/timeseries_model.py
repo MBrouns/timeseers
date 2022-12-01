@@ -1,5 +1,5 @@
 import pandas as pd
-import pymc3 as pm
+import pymc as pm
 from timeseers.utils import MinMaxScaler, StdScaler, add_subplot
 from timeseers.likelihood import Gaussian
 import numpy as np
@@ -27,7 +27,7 @@ class TimeSeriesModel(ABC):
             likelihood = Gaussian()
         with model:
             likelihood.observed(mu, y_scaled)
-            self.trace_ = pm.sample(**sample_kwargs)
+            self.trace_ = pm.sample(**sample_kwargs, return_inferencedata=False)
 
     def plot_components(self, X_true=None, y_true=None, groups=None, fig=None):
         import matplotlib.pyplot as plt

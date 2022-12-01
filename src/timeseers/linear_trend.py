@@ -1,7 +1,7 @@
 import numpy as np
 from timeseers.timeseries_model import TimeSeriesModel
 from timeseers.utils import add_subplot, get_group_definition
-import pymc3 as pm
+import pymc as pm
 
 
 class LinearTrend(TimeSeriesModel):
@@ -27,7 +27,7 @@ class LinearTrend(TimeSeriesModel):
 
             if self.pool_type == 'partial':
                 sigma_k = pm.HalfCauchy(self._param_name('sigma_k'), beta=self.growth_prior_scale)
-                offset_k = pm.Normal(self._param_name('offset_k'), mu=0, sd=1, shape=n_groups)
+                offset_k = pm.Normal(self._param_name('offset_k'), 0, 1, shape=n_groups)
                 k = pm.Deterministic(self._param_name("k"), offset_k * sigma_k)
 
                 sigma_delta = pm.HalfCauchy(self._param_name('sigma_delta'), beta=self.changepoints_prior_scale)
