@@ -143,6 +143,11 @@ class MultiplicativeTimeSeries(TimeSeriesModel):
         return self.left.definition(*args, **kwargs) * (
             1 + self.right.definition(*args, **kwargs)
         )
+    
+    def predict_component(self, *args, **kwargs):
+        left = self.left.predict_component(*args, **kwargs)
+        right = self.right.predict_component(*args, **kwargs)
+        return left + right
 
     def plot(self, trace, scaled_t, y_scaler):
         left = self.left.plot(trace, scaled_t, y_scaler)

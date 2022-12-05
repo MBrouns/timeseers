@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from timeseers.linear_trend import LinearTrend
 from timeseers.fourier_seasonality import FourierSeasonality
+from timeseers.constant import Constant
 import matplotlib.pyplot as plt
 
 
