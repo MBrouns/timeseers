@@ -29,6 +29,27 @@ class TimeSeriesModel(ABC):
             likelihood.observed(mu, y_scaled)
             self.trace_ = pm.sample(**sample_kwargs, return_inferencedata=False)
 
+    def predict(self, X_train, X_test, X_scaler=MinMaxScaler):
+        
+        # scale train and test data 
+        X_train_to_scale = X_train.select_dtypes(exclude='category')
+        X_test_to_scale = X_test.select_dtypes(exclude='category')
+        
+        X_scaler = X_scaler()
+        X_train_scaled = X_scaler.fit_transform(X_train_to_scale)
+        X_train_scaled = X_train_scaled.join(X_train.select_dtypes('category'))
+
+        X_test_scaled = X_scaler.transform(X_test_to_scale)
+        X_test_scaled = X_test_scaled.join(X_test.select_dtypes('category'))
+
+        X_scaled = pd.concat([X_train_scaled, X_test_scaled])
+
+        # predict each component (will be added or multiplied, depending on model)
+        preds = self.predict_component(self.trace_, X_scaled, self._y_scaler_)
+        preds.reset_index(inplace=True)
+
+        return preds
+
     def plot_components(self, X_true=None, y_true=None, groups=None, fig=None):
         import matplotlib.pyplot as plt
 
@@ -65,6 +86,10 @@ class TimeSeriesModel(ABC):
     def definition(self, model, X_scaled, scale_factor):
         pass
 
+    @abstractmethod
+    def predict_component(self, trace, t, y_scaler):
+        pass
+
     def _param_name(self, param):
         return f"{self.name}-{param}"
 
@@ -88,6 +113,11 @@ class AdditiveTimeSeries(TimeSeriesModel):
         return self.left.definition(*args, **kwargs) + self.right.definition(
             *args, **kwargs
         )
+
+    def predict_component(self, *args, **kwargs):
+        left = self.left.predict_component(*args, **kwargs)
+        right = self.right.predict_component(*args, **kwargs)
+        return left + right
 
     def plot(self, *args, **kwargs):
         left = self.left.plot(*args, **kwargs)
