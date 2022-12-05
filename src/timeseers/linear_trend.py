@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
 from timeseers.timeseries_model import TimeSeriesModel
-from timeseers.utils import add_subplot, get_group_definition
+from timeseers.utils import add_subplot, get_group_definition, MinMaxScaler
 import pymc as pm
-
 
 class LinearTrend(TimeSeriesModel):
     def __init__(
@@ -60,18 +59,17 @@ class LinearTrend(TimeSeriesModel):
         offset = m + A @ gamma
         return growth * t[:, None] + offset
 
-    def predict_component(self, trace, X_scaled, y_scaler):
+    def predict_component(self, trace, X_scaled):
         
         preds = pd.DataFrame(columns=['g','t','preds'])
         for group_code, group_name in self.groups_.items():
             scaled_t = X_scaled[X_scaled.g==group_name]['t'].sort_values().reset_index(drop=True).to_numpy()
             scaled_trend = self._predict(trace, scaled_t, group_code)
-            trend = y_scaler.inv_transform(scaled_trend)
             trend_pred = pd.DataFrame(
                 {
                     'g': group_name,
                     't': scaled_t,
-                    'preds': trend.mean(axis=1)
+                    'preds': scaled_trend.mean(axis=1)
                 }
             )
             preds = pd.concat([preds, trend_pred])
@@ -81,21 +79,31 @@ class LinearTrend(TimeSeriesModel):
         
         return preds
 
-    def plot(self, trace, scaled_t, y_scaler):
+    def plot(self, trace, X, t_scaler, y_scaler):
         ax = add_subplot()
         ax.set_title(str(self))
-        ax.set_xticks([])
-        trend_return = np.empty((len(scaled_t), len(self.groups_)))
+        
+        # plot each groups separately
         for group_code, group_name in self.groups_.items():
-            scaled_trend = self._predict(trace, scaled_t, group_code)
-            trend = y_scaler.inv_transform(scaled_trend)
-            ax.plot(scaled_t, trend.mean(axis=1), label=group_name)
-            trend_return[:, group_code] = scaled_trend.mean(axis=1)
 
-        for changepoint in self.s:
+            # get t for this group and scale it
+            t_grp = X[X.g==group_name][['t']].sort_values('t').reset_index(drop=True)
+            t_grp_scaled = t_scaler.transform(t_grp)['t'].to_numpy()
+
+            # predict trend and re-scale it
+            scaled_trend = self._predict(trace, t_grp_scaled, group_code)
+            trend = y_scaler.inv_transform(scaled_trend)
+            
+            # plot on full x-axis space
+            ax.plot(t_grp, trend.mean(axis=1), label=group_name)
+
+        # re-scale s with the t_scaler and plot changepoint locations
+        rescaled_s = t_scaler.inv_transform(pd.DataFrame({'t': self.s}))['t'].to_numpy()
+        for changepoint in rescaled_s:
             ax.axvline(changepoint, linestyle="--", alpha=0.2, c="k")
+        
+        # add legend to plot
         ax.legend()
-        return trend_return
 
     def __repr__(self):
         return f"LinearTrend(n_changepoints={self.n_changepoints}, " \

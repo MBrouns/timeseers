@@ -44,38 +44,65 @@ class TimeSeriesModel(ABC):
 
         X_scaled = pd.concat([X_train_scaled, X_test_scaled])
 
-        # predict each component (will be added or multiplied, depending on model)
-        preds = self.predict_component(self.trace_, X_scaled, self._y_scaler_)
+        # predict each component (will be added or multiplied, depending on model) and rescale
+        scaled_preds = self.predict_component(self.trace_, X_scaled)
+        preds = self._y_scaler_.inv_transform(scaled_preds)
         preds.reset_index(inplace=True)
 
         return preds
 
-    def plot_components(self, X_true=None, y_true=None, groups=None, fig=None):
+    def plot_components(self, X_train=None, y_train=None, X_test=None, y_test=None, 
+                        groups=None, X_scaler=MinMaxScaler, fig=None):
         import matplotlib.pyplot as plt
 
         if fig is None:
             fig = plt.figure(figsize=(18, 1))
 
-        lookahead_scale = 0.3
-        t_min, t_max = self._X_scaler_.min_["t"], self._X_scaler_.max_["t"]
-        t_max += (t_max - t_min) * lookahead_scale
-        t = pd.date_range(t_min, t_max, freq='D')
+        # get scaler for t for the whole time period
+        X = pd.concat([X_train, X_test])
+        t = X[['t']].copy()
+        t_scaler = MinMaxScaler()
+        t_scaler.fit(t)
 
-        scaled_t = np.linspace(0, 1 + lookahead_scale, len(t))
-        total = self.plot(self.trace_, scaled_t, self._y_scaler_)
+        # combine X and y
+        Xy_train = X_train.copy()
+        Xy_train['value'] = y_train
+        Xy_test = X_test.copy()
+        Xy_test['value'] = y_test
 
+        # call predict to get predictions for all components
+        preds = self.predict(X_train, X_test)
+        preds_train = preds[preds.t<=1].copy()
+        preds_test = preds[preds.t>1].copy()
+
+        self.plot(self.trace_, X, t_scaler, self._y_scaler_)
+
+        # plot overall predictions
         ax = add_subplot()
         ax.set_title("overall")
-        ax.plot(t, self._y_scaler_.inv_transform(total))
 
-        if X_true is not None and y_true is not None:
+        if X_train is not None and y_train is not None:
             if groups is not None:
                 for group in groups.cat.categories:
-                    mask = groups == group
-                    ax.scatter(X_true["t"][mask], y_true[mask], label=group, marker='.', alpha=0.2)
+                    
+                    # get all the data for the group
+                    Xy_train_region = Xy_train[Xy_train.g==group].copy().sort_values('t')
+                    Xy_test_region = Xy_test[Xy_test.g==group].copy().sort_values('t')
+                    preds_train_region = preds_train[preds_train.g==group].copy().sort_values('t')
+                    preds_test_region = preds_test[preds_test.g==group].copy().sort_values('t')
+                    
+                    # plot true values and preds for train
+                    ax.plot(Xy_train_region.t, Xy_train_region.value, label=group, linestyle='solid')
+                    ax.plot(Xy_train_region.t, preds_train_region.preds, label=group, linestyle='dashed', marker='x')
+
+                    # plot true values and preds for test
+                    ax.plot(Xy_test_region.t, Xy_test_region.value, label=group, linestyle='solid')
+                    ax.plot(Xy_test_region.t, preds_test_region.preds, label=group, linestyle='dashed', marker='x')
+                    
             else:
-                ax.scatter(X_true["t"], y_true, c="k", marker='.', alpha=0.2)
+                ax.plot(X_train["t"], y_train, c="k", marker='.', alpha=0.4)
         fig.tight_layout()
+        fig.show()
         return fig
 
     @abstractmethod
@@ -120,9 +147,8 @@ class AdditiveTimeSeries(TimeSeriesModel):
         return left + right
 
     def plot(self, *args, **kwargs):
-        left = self.left.plot(*args, **kwargs)
-        right = self.right.plot(*args, **kwargs)
-        return left + right
+        self.left.plot(*args, **kwargs)
+        self.right.plot(*args, **kwargs)
 
     def __repr__(self):
         return (

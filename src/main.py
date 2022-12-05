@@ -18,8 +18,9 @@ df = pd.read_csv('../input/data/dovato_sales.csv', index_col=False).assign(
 df.rename({'gross_segment':'g'}, axis=1, inplace=True)
 df = df[['t','g','value']]
 
-# select groups
-df = df[df.g.isin([7226,7228])].copy().reset_index(drop=True)
+# select groups and order
+df = df[df.g.isin([7228,7212,7213,7231,7204,7205])].copy().reset_index(drop=True)
+
 
 # for the library, g must be categorical
 df['g'] = df['g'].astype('category')
@@ -37,7 +38,7 @@ y_test = X_test.pop('value')
 
 # build the model
 trend = LinearTrend(n_changepoints=10, growth_prior_scale=5, changepoints_prior_scale=5, pool_cols='g', pool_type='partial') 
-yearly_seasonality = FourierSeasonality(n = 5, shrinkage_strength = 1, period = pd.Timedelta(days=365.25), pool_cols='g', pool_type='partial')
+yearly_seasonality = FourierSeasonality(n = 4, shrinkage_strength = 1, period = pd.Timedelta(days=365.25), pool_cols='g', pool_type='partial')
 model = trend + yearly_seasonality
 
 # fit the model
@@ -46,9 +47,7 @@ model.fit(X_train, y_train, **{'chains': 1,'draws':50,'tune': 50, 'cores': 1})
 # predict, NOTE: Use train and test because we (must) predict in- and out-of-sample
 preds = model.predict(X_train, X_test)
 
-# plot components
-y = pd.concat([y_train, y_test])
-X = pd.concat([X_train, X_test])
-model.plot_components(X, y, groups=df['g'])
+# plot components (calls predict internally)
+model.plot_components(X_train, y_train, X_test, y_test, groups=df['g'])
 
-print('fin')
+print("finished")

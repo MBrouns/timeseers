@@ -65,19 +65,17 @@ class FourierSeasonality(TimeSeriesModel):
             seasonality_return[:, group_code] = s.mean(axis=1)
         return seasonality_return
 
-    def predict_component(self, trace, X_scaled, y_scaler):
+    def predict_component(self, trace, X_scaled):
         
         preds = pd.DataFrame(columns=['g','t','preds'])
         for group_code, group_name in self.groups_.items():
             scaled_t = X_scaled[X_scaled.g==group_name]['t'].sort_values().reset_index(drop=True).to_numpy()
-            
             scaled_seasonality = self._predict(trace, scaled_t, group_code)
-            seasonality = y_scaler.inv_transform(scaled_seasonality)
             seasonality_pred = pd.DataFrame(
                 {
                     'g': group_name,
                     't': scaled_t,
-                    'preds': seasonality.mean(axis=1)
+                    'preds': scaled_seasonality.mean(axis=1)
                 }
             )
             preds = pd.concat([preds, seasonality_pred])
@@ -87,19 +85,30 @@ class FourierSeasonality(TimeSeriesModel):
 
         return preds
 
-    def plot(self, trace, scaled_t, y_scaler):
+    def plot(self, trace, X, t_scaler, y_scaler):
         ax = add_subplot()
         ax.set_title(str(self))
 
-        seasonality_return = np.empty((len(scaled_t), len(self.groups_)))
+        # get min and max date over all groups
+        min_date = X['t'].min()
+        max_date = min_date + self.period
+
+        # based on min and max date, build a full seasonality period 
+        seasonality_period = pd.DataFrame({'t': X[(X['t']>=min_date)&(X['t']<=max_date)]['t'].sort_values().unique()})
+
         for group_code, group_name in self.groups_.items():
-            scaled_s = self._predict(trace, scaled_t, group_code)
+            # scale seasonality period
+            t_grp_scaled = t_scaler.transform(seasonality_period)['t'].to_numpy()
+            
+            # predict seasonality for that one seasonality period
+            scaled_s = self._predict(trace, t_grp_scaled, group_code)
+
+            # re-scale seasonality
             s = y_scaler.inv_transform(scaled_s)
-            ax.plot(scaled_t, s.mean(axis=1)[:len(scaled_t)], label=group_name, marker='x')
-
-            seasonality_return[:, group_code] = scaled_s.mean(axis=1)
-
-        return seasonality_return
+            
+            # print seasonality on that seasonality period but with differently formatted x-tick labels (only day and month)
+            seasonality_period_formatted = [dt.strftime(format="%b-%d") for dt in seasonality_period.t]
+            ax.plot(seasonality_period_formatted, s.mean(axis=1)[:len(seasonality_period)], label=group_name)
 
     def __repr__(self):
         return f"FourierSeasonality(n={self.n}, " \
