@@ -24,7 +24,7 @@ class Regressor(TimeSeriesModel):
         with model:
             if self.pool_type == "partial":
                 sigma_k = pm.HalfCauchy(self._param_name('sigma_k'), beta=self.scale)
-                offset_k = pm.Normal(self._param_name('offset_k'), mu=0, sd=1, shape=(n_groups, self.shape_))
+                offset_k = pm.Normal(self._param_name('offset_k'), 0, 1, shape=(n_groups, self.shape_))
                 k = pm.Deterministic(self._param_name("k"), offset_k * sigma_k)
 
             else:
@@ -37,18 +37,17 @@ class Regressor(TimeSeriesModel):
 
         return np.ones_like(t)[:, None] * ind.reshape(1, -1)
 
-    def predict_component(self, trace, X_scaled, y_scaler):
+    def predict_component(self, trace, X_scaled):
         
         preds = pd.DataFrame(columns=['g','t','preds'])
         for group_code, group_name in self.groups_.items():
             scaled_t = X_scaled[X_scaled.g==group_name]['t'].sort_values().reset_index(drop=True).to_numpy()
             scaled_pred = self._predict(trace, scaled_t, group_code)
-            pred = y_scaler.inv_transform(scaled_pred)
             trend_pred = pd.DataFrame(
                 {
                     'g': group_name,
                     't': scaled_t,
-                    'preds': pred.mean(axis=1)
+                    'preds': scaled_pred.mean(axis=1)
                 }
             )
             preds = pd.concat([preds, trend_pred])
@@ -58,20 +57,25 @@ class Regressor(TimeSeriesModel):
 
         return preds
         
-    def plot(self, trace, scaled_t, y_scaler):
+    def plot(self, trace, X, t_scaler, y_scaler):
         ax = add_subplot()
         ax.set_title(str(self))
-        # ax.set_xticks([])
-        trend_return = np.empty((len(scaled_t), len(self.groups_)))
+        
         plot_data = []
         for group_code, group_name in self.groups_.items():
-            y_hat = np.mean(self._predict(trace, scaled_t, group_code), axis=1)
-            trend_return[:, group_code] = y_hat
+            
+            # get t for this group and scale it
+            t_grp = X[X.g==group_name][['t']].sort_values('t').reset_index(drop=True)
+            t_grp_scaled = t_scaler.transform(t_grp)['t'].to_numpy()
+            
+            # predict 
+            y_hat = np.mean(self._predict(trace, t_grp_scaled, group_code), axis=1)
+            
+            # plot
             plot_data.append((group_name, y_hat[0]))
+
         ax.bar(*zip(*plot_data))
         ax.axhline(0, c='k', linewidth=3)
-
-        return trend_return
 
     def __repr__(self):
         return f"LinearRegressor(on={self.on}, pool_cols={self.pool_cols}, pool_type={self.pool_type})"
